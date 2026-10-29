@@ -1,4 +1,4 @@
-name: InferOps CI 
+name: InferOps CI
 
 on:
   push:
@@ -12,30 +12,60 @@ jobs:
   test:
     name: Run backend tests
     runs-on: ubuntu-latest
-
     env:
       DATABASE_URL: postgresql+psycopg://ci:ci@localhost:5432/ci_db
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-      - name: Set up python
+
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
       - name: Install backend dependencies
         working-directory: backend
         run: |
-          python -m pip install --upgrade pip 
+          python -m pip install --upgrade pip
           python -m pip install -r requirements.txt pytest==9.1.1
+
       - name: Run backend tests
         run: python -m pytest tests/test_main.py -v
 
+  frontend-checks:
+    name: Lint and build frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
 
   docker-build:
     name: Build Docker images
     runs-on: ubuntu-latest
-    needs: test
+    needs:
+      - test
+      - frontend-checks
 
     steps:
       - name: Check out repository
@@ -47,4 +77,36 @@ jobs:
       - name: Build InferOps demo image
         run: docker build -t inferops-demo:ci ./backend/demo_app
 
+  security-scan:
+    name: Scan Docker images
+    runs-on: ubuntu-latest
+    needs:
+      - docker-build
 
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build InferOps backend image
+        run: docker build -t inferops-backend:ci ./backend
+
+      - name: Build InferOps demo image
+        run: docker build -t inferops-demo:ci ./backend/demo_app
+
+      - name: Scan backend image
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: inferops-backend:ci
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Scan demo image
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: inferops-demo:ci
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
