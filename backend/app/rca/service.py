@@ -3,15 +3,16 @@ import json
 import os
 import time
 
-from app.schemas.rca import RCAAnalysis
 from dotenv import load_dotenv
 from google import genai
 from google.genai.errors import APIError
+
 from app.rag.similarity_search import find_similar_incidents
+from app.schemas.rca import RCAAnalysis
 
 load_dotenv()
 
-MODEL_NAME = "gemini-3.8-flash"
+MODEL_NAME = "gemini-3.6-flash"
 
 def analyze_incident(
     incident_type: str,
@@ -89,8 +90,8 @@ Distinguish confirmed evidence from hypotheses.
     client = genai.Client(
     api_key=api_key,
     http_options={
-        "timeout": 20000,
-        "retry_options": {"attempts": 1},
+        "timeout": 90000,
+        "retry_options": {"attempts": 3},
     },
 )
 
@@ -123,15 +124,15 @@ Distinguish confirmed evidence from hypotheses.
                 model=MODEL_NAME,
                 input=prompt,
             )
-        except Exception as exc:
-            import traceback
-
+        except APIError as exc:
             print(
                 f"[RCA ERROR] {type(exc).__name__}: {exc}",
                 flush=True,
             )
-            traceback.print_exc()
-            raise
+            status_code = getattr(exc, "code", None)
+            raise RuntimeError(
+                f"Gemini API request failed with status {status_code}."
+            ) from exc
 
         print(
             f"[RCA TIMING] Gemini request finished in "
@@ -153,14 +154,9 @@ Distinguish confirmed evidence from hypotheses.
         try:
             validated_result = RCAAnalysis.model_validate(result)
         except Exception as exc:
-            import traceback
-
-            print(
-                f"[RCA ERROR] {type(exc).__name__}: {exc}",
-                flush=True,
-            )
-            traceback.print_exc()
-            raise
+            raise RuntimeError(
+                "Gemini returned an invalid RCA response."
+            ) from exc
 
         result = validated_result.model_dump()
 
