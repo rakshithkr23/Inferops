@@ -1,31 +1,30 @@
+import json
 import sys
 from pathlib import Path
-
-from fastapi.testclient import TestClient
-
-BACKEND_DIR = Path(__file__).resolve().parents[1] / "backend" 
-sys.path.insert(0, str(BACKEND_DIR))
-
-from app.main import app
-
-client = TestClient(app)  #test FastAPI without starting a server
-def test_root_endpoint():  
-    response = client.get("/") #calls the root endpoint
-
-    assert response.status_code == 200  #checks that the req succeeds 
-    assert response.json() == { 
-            "project" : "InferOps",
-            "status" : "running",
-            "message" : "InferOps backend is working",}  #checks that returned json marches the response 
-
-
-import json
 from unittest.mock import MagicMock, patch
 
 import pytest
+from fastapi.testclient import TestClient
 from google.genai.errors import APIError
 
-from app.rca.service import analyze_incident
+BACKEND_DIR = Path(__file__).resolve().parents[1] / "backend"
+sys.path.insert(0, str(BACKEND_DIR))
+
+from app.main import app  # noqa: E402
+from app.rca.service import MODEL_NAME, analyze_incident  # noqa: E402
+
+client = TestClient(app)  # test FastAPI without starting a server
+
+
+def test_root_endpoint():
+    response = client.get("/")  # calls the root endpoint
+
+    assert response.status_code == 200  # checks that the request succeeds
+    assert response.json() == {  # checks that the returned JSON matches
+        "project": "InferOps",
+        "status": "running",
+        "message": "InferOps backend is working",
+    }
 
 
 @pytest.fixture
@@ -66,7 +65,7 @@ def test_rca_success(mock_rag, mock_gemini, monkeypatch):
     result = call_analyze_incident()
 
     assert result["analysis"]["confidence"] == "medium"
-    assert result["model"] == "gemini-3.8-flash"
+    assert result["model"] == MODEL_NAME
     mock_rag.assert_called_once()
     mock_gemini[1].close.assert_called_once()
 
@@ -141,7 +140,7 @@ def test_rca_api_returns_expected_response():
             "confidence": "medium",
             "limitations": ["Database logs are unavailable"],
         },
-        "model": "gemini-3.8-flash",
+        "model": MODEL_NAME,
     }
 
     payload = {
@@ -160,5 +159,3 @@ def test_rca_api_returns_expected_response():
     assert response.status_code == 200
     assert response.json() == fake_result
     mocked_workflow.assert_called_once()
-
-
