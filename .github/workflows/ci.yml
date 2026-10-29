@@ -94,7 +94,7 @@ jobs:
         run: docker build -t inferops-demo:ci ./backend/demo_app
 
       - name: Scan backend image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           image-ref: inferops-backend:ci
           format: table
@@ -103,7 +103,7 @@ jobs:
           exit-code: "1"
 
       - name: Scan demo image
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.33.1
         with:
           image-ref: inferops-demo:ci
           format: table
