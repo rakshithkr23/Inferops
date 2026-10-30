@@ -1,6 +1,8 @@
 
 from typing import Literal
-from pydantic import BaseModel, Field, ConfigDict
+
+from pydantic import BaseModel, ConfigDict, Field
+
 
 class RCARequest(BaseModel):
     incident_type: str = Field(..., min_length=1)

@@ -1,6 +1,7 @@
+from functools import lru_cache
+
 from sentence_transformers import SentenceTransformer
 from sqlalchemy import text
-from functools import lru_cache
 
 from app.database.connection import SessionLocal
 

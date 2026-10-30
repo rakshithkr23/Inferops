@@ -159,3 +159,9 @@ def test_rca_api_returns_expected_response():
     assert response.status_code == 200
     assert response.json() == fake_result
     mocked_workflow.assert_called_once()
+
+def test_health_endpoint():
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}

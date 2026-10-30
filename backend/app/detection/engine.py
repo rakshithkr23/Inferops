@@ -1,7 +1,7 @@
 from app.detection.rules import (
-    detect_http_500,
-    detect_high_error_rate,
     detect_application_exception,
+    detect_high_error_rate,
+    detect_http_500,
     detect_unhealthy_workload,
 )
 

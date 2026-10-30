@@ -1,6 +1,9 @@
-from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Text, DateTime
+from datetime import UTC, datetime
+
+from sqlalchemy import Column, DateTime, Integer, String, Text
+
 from app.database.connection import Base
+
 
 class Incident(Base):
     __tablename__ = "incidents"
@@ -13,7 +16,7 @@ class Incident(Base):
 
     created_at = Column(
             DateTime(timezone = True),
-            default = lambda: datetime.now(timezone.utc),
+            default = lambda: datetime.now(UTC),
             nullable = False ) 
 
     service_name = Column(

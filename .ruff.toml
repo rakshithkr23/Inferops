@@ -1,0 +1,7 @@
+[lint.per-file-ignores]
+"backend/app/main.py" = ["B008"]
+"backend/app/routes.py" = ["B008", "BLE001"]
+"backend/main.py" = ["B008"]
+"backend/demo_app/main.py" = ["TRY002"]
+"backend/app/database/init_db.py" = ["F401", "PLC0414"]
+"backend/app/rag/init_embeddings.py" = ["F401", "PLC0414"]
