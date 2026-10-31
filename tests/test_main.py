@@ -1,7 +1,7 @@
 import json
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -10,8 +10,8 @@ from google.genai.errors import APIError
 BACKEND_DIR = Path(__file__).resolve().parents[1] / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
-from app.main import app  # noqa: E402
-from app.rca.service import MODEL_NAME, analyze_incident  # noqa: E402
+from app.main import app
+from app.rca.service import MODEL_NAME, analyze_incident
 
 client = TestClient(app)  # test FastAPI without starting a server
 
