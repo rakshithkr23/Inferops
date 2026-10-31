@@ -1,10 +1,9 @@
 
-from fastapi import FastAPI, Depends
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-
 from app.database.dependencies import get_db
 from app.routes import router
+from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 
 app = FastAPI(
     title="InferOps API",
@@ -22,7 +21,6 @@ app.add_middleware(
 
 app.include_router(router)
 
-
 @app.get("/")
 def root():
     return {
@@ -30,7 +28,6 @@ def root():
         "status": "running",
         "message": "InferOps backend is working"
     }
-
 
 @app.get("/db-test")
 def database_test(db: Session = Depends(get_db)):

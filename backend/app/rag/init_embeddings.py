@@ -1,6 +1,6 @@
 from app.database.connection import Base, engine
-from app.models.incident import Incident
-from app.models.historical_incident import HistoricalIncident
+from app.models.historical_incident import HistoricalIncident as HistoricalIncident
+from app.models.incident import Incident as Incident
 from app.rag.embedding_model import IncidentEmbedding
 
 

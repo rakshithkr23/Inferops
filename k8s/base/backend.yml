@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inferops-backend
+  labels:
+    app: inferops-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inferops-backend
+  template:
+    metadata:
+      labels:
+        app: inferops-backend
+    spec:
+      containers:
+        - name: backend
+          image: inferops-backend
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: inferops-config
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: inferops-secrets
+                  key: DATABASE_URL
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: inferops-secrets
+                  key: GEMINI_API_KEY
+          # The first start loads the embedding model and seeds data,
+          # so allow up to 5 minutes before liveness checks begin.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 5
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 250m
+              memory: 768Mi
+            limits:
+              memory: 2Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: inferops-backend
+spec:
+  type: NodePort
+  selector:
+    app: inferops-backend
+  ports:
+    - port: 8000
+      targetPort: 8000
+      nodePort: 30080

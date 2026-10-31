@@ -1,0 +1,94 @@
+
+name: InferOps CD
+
+# After a merge to main: build images, deploy them to a temporary kind
+# (Kubernetes) cluster, smoke-test the running app and, only if everything
+# passes, publish the images to GitHub Container Registry.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-and-publish:
+    name: Deploy to kind, test, publish images
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build images
+        run: |
+          docker build -t inferops-backend:local ./backend
+          docker build -t inferops-frontend:local ./frontend
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: inferops
+          config: k8s/kind-config.yml
+
+      - name: Load images into the cluster
+        run: |
+          kind load docker-image inferops-backend:local --name inferops
+          kind load docker-image inferops-frontend:local --name inferops
+
+      - name: Deploy to Kubernetes
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          kubectl apply -f k8s/base/namespace.yml
+          kubectl -n inferops create secret generic inferops-secrets \
+            --from-literal=POSTGRES_PASSWORD=ci-password \
+            --from-literal=DATABASE_URL=postgresql+psycopg://inferops:ci-password@postgres:5432/inferops \
+            --from-literal=GEMINI_API_KEY="${GEMINI_API_KEY}" \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl apply -k k8s/base
+          kubectl -n inferops rollout status statefulset/postgres --timeout=300s
+          kubectl -n inferops rollout status deployment/inferops-backend --timeout=600s
+          kubectl -n inferops rollout status deployment/inferops-frontend --timeout=120s
+
+      - name: Smoke test backend
+        env:
+          RUN_RCA: ${{ secrets.GEMINI_API_KEY != '' }}
+        run: ./scripts/smoke-test.sh http://localhost:8000
+
+      - name: Check frontend
+        run: curl -fsS http://localhost:3000 | grep -q 'id="root"'
+
+      - name: Show diagnostics on failure
+        if: failure()
+        run: |
+          kubectl -n inferops get pods -o wide || true
+          kubectl -n inferops describe pods || true
+          kubectl -n inferops logs deployment/inferops-backend --tail=200 || true
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish images
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          for name in backend frontend; do
+            for tag in "$SHORT_SHA" latest; do
+              docker tag "inferops-$name:local" "ghcr.io/$OWNER/inferops-$name:$tag"
+              docker push "ghcr.io/$OWNER/inferops-$name:$tag"
+            done
+          done

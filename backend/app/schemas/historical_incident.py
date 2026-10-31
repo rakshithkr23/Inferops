@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class HistoricalIncidentCreate(BaseModel):
     incident_type: str
     service_name: str

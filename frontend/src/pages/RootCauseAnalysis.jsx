@@ -1,5 +1,6 @@
 
 import { useState } from 'react'
+import { API_URL } from '../config'
 
 function RootCauseAnalysis() {
   const [form, setForm] = useState({
@@ -31,7 +32,7 @@ function RootCauseAnalysis() {
     setFeedbackLoading(false)
 
     try {
-      const response = await fetch('http://localhost:8000/rca/analyze', {
+      const response = await fetch(`${API_URL}/rca/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -75,7 +76,7 @@ function RootCauseAnalysis() {
     setFeedbackError('')
 
     try {
-      const response = await fetch('http://localhost:8000/rca/feedback', {
+      const response = await fetch(`${API_URL}/rca/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

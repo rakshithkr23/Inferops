@@ -1,7 +1,7 @@
 from app.database.connection import Base, engine
+from app.models.historical_incident import HistoricalIncident
 from app.models.incident import Incident
 from app.rag.embedding_model import IncidentEmbedding
-from app.models.historical_incident import HistoricalIncident
 
 
 def inspect_database() -> None:

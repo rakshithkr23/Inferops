@@ -1,6 +1,9 @@
-from typing import TypedDict, Any
-from langgraph.graph import StateGraph, START, END
+from typing import Any, TypedDict
+
+from langgraph.graph import END, START, StateGraph
+
 from app.rca.service import analyze_incident
+
 
 class RCAState(TypedDict, total=False):
     incident_type: str

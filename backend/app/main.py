@@ -1,4 +1,6 @@
-from fastapi import FastAPI, Depends
+import os
+
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
@@ -11,9 +13,17 @@ app = FastAPI(
     version="0.1.0"
 )
 
+cors_origins = [ 
+    origin.strip()
+    for origin in os.getenv(
+        "CORS_ORIGINS","http://localhost:5173"
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,6 +39,11 @@ def root():
         "status": "running",
         "message": "InferOps backend is working"
     }
+
+@app.get("/health")
+def health():
+    """Liveness/readiness endpoint used by Docker and Kubernetes probes."""
+    return {"status":"ok"}
 
 
 @app.get("/db-test")

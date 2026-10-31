@@ -4,6 +4,7 @@ from app.database.connection import SessionLocal
 from app.models.historical_incident import HistoricalIncident
 from app.rag.embedding_model import IncidentEmbedding
 
+
 def verify_embeddings() -> None:
     db = SessionLocal()
 

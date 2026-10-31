@@ -1,19 +1,20 @@
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 from uuid import uuid4
 
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
 from app.database.dependencies import get_db
-from app.models.incident import Incident
-from app.schemas.incident import IncidentCreate
 from app.detection.engine import detect_incidents
 from app.models.historical_incident import HistoricalIncident
-from app.schemas.historical_incident import HistoricalIncidentCreate
-from app.schemas.rag import RAGSearchRequest, RAGSearchResponse
-from app.rag.similarity_search import find_similar_incidents
-from app.schemas.rca import RCARequest, RCAResponse
-from app.rca.workflow import rca_workflow
+from app.models.incident import Incident
 from app.models.rca_feedback import RCAFeedback
+from app.rag.similarity_search import find_similar_incidents
+from app.rca.workflow import rca_workflow
+from app.schemas.historical_incident import HistoricalIncidentCreate
+from app.schemas.incident import IncidentCreate
+from app.schemas.rag import RAGSearchRequest, RAGSearchResponse
+from app.schemas.rca import RCARequest, RCAResponse
 from app.schemas.rca_feedback import RCAFeedbackCreate, RCAFeedbackResponse
 
 router = APIRouter()
@@ -228,9 +229,6 @@ def analyze_incident_rca(request: RCARequest):
             detail="Failed to analyze the incident.",
         ) from exc
 
-
-
-
 @router.post("/rca/feedback", response_model=RCAFeedbackResponse)
 def create_rca_feedback(
     feedback: RCAFeedbackCreate,
@@ -266,9 +264,20 @@ def create_rca_feedback(
     except HTTPException:
         db.rollback()
         raise
+
     except Exception as exc:
         db.rollback()
-        print(f"[RCA ROUTE ERROR] {type(exc).__name__}: {exc}", flush=True)
+
+        error_message = str(exc)
+        cause_message = str(exc.__cause__) if exc.__cause__ else ""
+        combined_error = f"{error_message} {cause_message}".lower()
+
+        if "timed out" in combined_error or "timeout" in combined_error:
+            raise HTTPException(
+                status_code=504,
+                detail="Failed to save RCA feedback.",
+            ) from exc
+
         raise HTTPException(
             status_code=500,
             detail="Failed to save RCA feedback.",
