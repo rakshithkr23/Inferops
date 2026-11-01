@@ -11,36 +11,44 @@ This guide runs the project with Docker Compose. It starts PostgreSQL with pgvec
 ## 2. Get the project
 
 ```bash
-git clone https://github.com/rakshithkr23/Inferops.git
+git clone -b phase-10-submission-fixes https://github.com/rakshithkr23/Inferops.git
 cd Inferops
 ```
 
-If you already have the repository, open a terminal in its root folder and run `git pull` on the branch you intend to use.
+## 3. Configure the environment
 
-## 3. Configure the Gemini key
-
-Create a file named `.env` in the repository root. Add:
+Create a root `.env` file:
 
 ```env
 GEMINI_API_KEY=replace_with_your_own_gemini_api_key
 POSTGRES_USER=inferops
-POSTGRES_PASSWORD=change_this_local_password
+POSTGRES_PASSWORD=choose_a_local_password
 POSTGRES_DB=inferops
+
+# Defaults below are suitable when ports 3000 and 8000 are free.
+FRONTEND_PORT=3000
+BACKEND_PORT=8000
+VITE_API_URL=http://localhost:8000
+CORS_ORIGINS=http://localhost:3000
 ```
 
-Do not commit the `.env` file or share the API key.
+Do not commit `.env` or share the API key. The `.env` file is ignored by Git.
 
-## 4. Start the application
+If ports 3000 or 8000 are already in use, change all four URL/port settings consistently. For example, use frontend port 3002, backend port 8002, `VITE_API_URL=http://localhost:8002`, and `CORS_ORIGINS=http://localhost:3002`.
 
-From the repository root:
+## 4. Start InferOps in an isolated Compose project
+
+Always use the dedicated Compose project name below. It keeps this checkout's containers, network, and PostgreSQL volume separate from another local InferOps checkout.
 
 ```bash
-docker compose up --build -d
+docker compose -p inferops-submission up --build -d
 ```
 
-The first build can take several minutes because the backend image installs Python dependencies and downloads the sentence-transformer model.
+Do not omit `-p inferops-submission` when managing this checkout. Do not use `down -v` unless you intentionally want to delete this checkout's database volume.
 
-## 5. Open InferOps
+The first build can take several minutes because the backend installs Python dependencies and downloads the sentence-transformer model.
+
+## 5. Open the application
 
 | Component | URL |
 |---|---|
@@ -48,46 +56,48 @@ The first build can take several minutes because the backend image installs Pyth
 | FastAPI Swagger documentation | http://localhost:8000/docs |
 | Backend health check | http://localhost:8000/health |
 
-Wait for the backend health check to return `{"status":"ok"}` before using the dashboard. On first startup, the backend prepares database tables and embeddings, so initialization can take a little while.
+If you selected alternate ports in `.env`, use those ports instead.
 
-## 6. Try the RCA workflow
+Wait for the backend health endpoint to return `{"status":"ok"}`. On first startup, the backend prepares database tables and the embedding model, so initialization can take time.
 
-1. Open the dashboard at http://localhost:3000.
-2. Open **Root Cause Analysis**.
-3. Enter an incident type, service name, severity, and a description of the problem.
-4. Select **Analyze incident**.
-5. Review the probable root cause, evidence, recommended actions, confidence, and limitations.
-6. Use the feedback buttons to submit feedback.
+## 6. Run an RCA from the dashboard
 
-RCA analysis calls the Gemini API and depends on a valid API key, network access, and available API quota. The generated root cause is an AI-assisted hypothesis; verify it against operational evidence before taking action.
+1. Open the dashboard and select **Root Cause Analysis**.
+2. Enter an incident type, service name, severity, and a useful description.
+3. Select **Analyze incident**.
+4. Review the probable root cause, evidence, recommended actions, confidence, limitations, and similar historical incidents returned by the API.
+5. Submit feedback if desired.
+
+RCA analysis requires a valid Gemini API key, internet access, and available API quota. It also uses the local sentence-transformer model and historical incident embeddings stored in PostgreSQL/pgvector. The result is an AI-assisted hypothesis, not proof; validate it against real logs, metrics, and Kubernetes events before taking action.
 
 ## 7. Useful commands
 
-Run these from the repository root:
+Run these from this repository root and keep the same project name:
 
 ```bash
-# View service status
-docker compose ps
+# Service status
+docker compose -p inferops-submission ps
 
-# Follow backend logs
-docker compose logs -f backend
+# Backend logs
+docker compose -p inferops-submission logs -f backend
 
-# Follow frontend logs
-docker compose logs -f frontend
+# Frontend logs
+docker compose -p inferops-submission logs -f frontend
 
-# Stop the Compose application
-docker compose down
+# Stop this checkout without deleting its database volume
+docker compose -p inferops-submission down
 ```
 
-`docker compose down` stops and removes the Compose containers and network but keeps the named PostgreSQL volume. Do not add `-v` unless you intentionally want to delete the database volume and its data.
+Never use `docker compose down -v` unless you intentionally want to permanently remove this checkout's database data.
 
-## 8. Common checks
+## 8. Troubleshooting
 
-- If the dashboard does not load, check `docker compose ps` and the frontend logs.
-- If Swagger does not load, check backend logs and wait for database/model initialization to finish.
-- If RCA reports a Gemini/API error, verify the key in your local `.env`, API quota, and backend logs. Never paste the key into an issue or chat.
-- If ports 3000 or 8000 are already occupied, stop the process using that port or deliberately change the host-side port mappings in `docker-compose.yml` and use the matching URL.
+- Dashboard unavailable: check the frontend container and its logs.
+- API unavailable: check backend logs and wait for database/model initialization.
+- Database authentication error: ensure the `.env` credentials are consistent for this isolated first-time database. Existing volumes retain the credentials used when they were initialized.
+- RCA API connection error: confirm the backend is reachable at `VITE_API_URL` and that `CORS_ORIGINS` contains the dashboard origin; rebuild the frontend after changing its build-time API URL.
+- Gemini error: check the local key, API quota, and backend logs. Never paste the key into chat or commit it.
 
-## 9. Run automated checks
+## 9. Automated checks
 
-Backend tests and frontend lint/build checks are configured in GitHub Actions. Review the latest workflow run before treating a change as verified.
+GitHub Actions runs backend lint/tests, frontend lint/build, and Docker image builds for configured branch and pull-request events. Check the Actions run for the submission branch before considering CI verified.
