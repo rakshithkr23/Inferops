@@ -57,7 +57,10 @@ function RootCauseAnalysis() {
       console.log('InferOps RCA API response:', data)
       setResult(data)
     } catch (err) {
-      setError(err.message || 'Could not connect to the InferOps backend.')
+      const message = err instanceof TypeError
+        ? `Could not reach the InferOps API at ${API_URL}. Check that the backend is running and that the dashboard is using the correct API URL.`
+        : err.message || 'RCA analysis failed. Check the backend logs for details.'
+      setError(message)
     } finally {
       setLoading(false)
     }
