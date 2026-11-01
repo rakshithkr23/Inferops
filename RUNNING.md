@@ -25,16 +25,16 @@ POSTGRES_USER=inferops
 POSTGRES_PASSWORD=choose_a_local_password
 POSTGRES_DB=inferops
 
-# Defaults below are suitable when ports 3000 and 8000 are free.
-FRONTEND_PORT=3000
-BACKEND_PORT=8000
-VITE_API_URL=http://localhost:8000
-CORS_ORIGINS=http://localhost:3000
+# These defaults avoid common local Kubernetes and app port conflicts.
+FRONTEND_PORT=3002
+BACKEND_PORT=8002
+VITE_API_URL=http://localhost:8002
+CORS_ORIGINS=http://localhost:3002
 ```
 
 Do not commit `.env` or share the API key. The `.env` file is ignored by Git.
 
-If ports 3000 or 8000 are already in use, change all four URL/port settings consistently. For example, use frontend port 3002, backend port 8002, `VITE_API_URL=http://localhost:8002`, and `CORS_ORIGINS=http://localhost:3002`.
+If you change the ports, update `FRONTEND_PORT`, `BACKEND_PORT`, `VITE_API_URL`, and `CORS_ORIGINS` consistently. The frontend API URL is embedded at build time, so rebuild the frontend after changing it.
 
 ## 4. Start InferOps in an isolated Compose project
 
@@ -46,15 +46,15 @@ docker compose -p inferops-submission up --build -d
 
 Do not omit `-p inferops-submission` when managing this checkout. Do not use `down -v` unless you intentionally want to delete this checkout's database volume.
 
-The first build can take several minutes because the backend installs Python dependencies and downloads the sentence-transformer model.
+The default dashboard URL is http://localhost:3002 and the API URL is http://localhost:8002. The first build can take several minutes because the backend installs Python dependencies and downloads the sentence-transformer model.
 
 ## 5. Open the application
 
 | Component | URL |
 |---|---|
-| React dashboard | http://localhost:3000 |
-| FastAPI Swagger documentation | http://localhost:8000/docs |
-| Backend health check | http://localhost:8000/health |
+| React dashboard | http://localhost:3002 |
+| FastAPI Swagger documentation | http://localhost:8002/docs |
+| Backend health check | http://localhost:8002/health |
 
 If you selected alternate ports in `.env`, use those ports instead.
 
