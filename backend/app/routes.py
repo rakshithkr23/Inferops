@@ -1,4 +1,5 @@
 
+import logging
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,6 +17,8 @@ from app.schemas.incident import IncidentCreate
 from app.schemas.rag import RAGSearchRequest, RAGSearchResponse
 from app.schemas.rca import RCARequest, RCAResponse
 from app.schemas.rca_feedback import RCAFeedbackCreate, RCAFeedbackResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -207,6 +210,7 @@ def analyze_incident_rca(request: RCARequest):
         ) from exc
 
     except Exception as exc:
+        logger.exception("RCA analysis request failed")
         error_message = str(exc)
         cause_message = str(exc.__cause__) if exc.__cause__ else ""
         combined_error = f"{error_message} {cause_message}".lower()
