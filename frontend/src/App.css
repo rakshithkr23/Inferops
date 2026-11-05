@@ -1978,3 +1978,121 @@ button {
   outline: 2px solid #f59e0b;
   outline-offset: 2px;
 }
+
+
+/* feedback form fields */
+.dashboard .feedback-form label {
+  display: block;
+  margin: 18px 0 8px;
+  color: var(--ui-text, #e7eaf2);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dashboard .feedback-form select,
+.dashboard .feedback-form textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border: 1px solid var(--ui-border, #3a4252);
+  border-radius: 10px;
+  background-color: var(--ui-bg, #0f121a);
+  color: var(--ui-text, #e7eaf2);
+  font: inherit;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.dashboard .feedback-form select {
+  min-height: 46px;
+  cursor: pointer;
+  appearance: none;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+
+.dashboard .feedback-form textarea {
+  min-height: 140px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.dashboard .feedback-form textarea::placeholder {
+  color: var(--ui-muted, #8992a4);
+  opacity: 0.85;
+}
+
+.dashboard .feedback-form select:focus,
+.dashboard .feedback-form textarea:focus {
+  border-color: var(--ui-accent, #16c7d8);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--ui-accent, #16c7d8) 16%, transparent);
+}
+
+.dashboard .feedback-form select option {
+  background: #1a2030;
+  color: #e7eaf2;
+}
+
+.dashboard .feedback-form .character-count {
+  margin-top: 10px;
+  color: var(--ui-muted, #8992a4);
+  font-size: 12px;
+}
+
+/* Light theme */
+.dashboard.theme-light .feedback-form select,
+.dashboard.theme-light .feedback-form textarea {
+  background-color: #ffffff;
+  color: var(--ui-text, #202737);
+  border-color: var(--ui-border, #dfe4ed);
+}
+
+.dashboard.theme-light .feedback-form select option {
+  background: #ffffff;
+  color: #202737;
+}
+
+/* Request monitoring chart */
+.dashboard .page-section .request-chart-container {
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 8px 0;
+}
+
+.dashboard .page-section .request-chart {
+  display: block;
+  width: 100%;
+  min-width: 320px;
+  height: auto;
+  overflow: visible;
+}
+
+.dashboard .page-section .request-chart-grid {
+  stroke: var(--ui-border, #3a4252);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+
+.dashboard .page-section .request-chart-line {
+  fill: none;
+  stroke: var(--ui-accent, #6c8cff);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.dashboard .page-section .request-chart-point {
+  fill: var(--ui-accent, #6c8cff);
+  stroke: var(--ui-panel, #1a1f2a);
+  stroke-width: 2;
+  cursor: pointer;
+}
+
+.dashboard .page-section .request-chart-point:hover {
+  r: 6;
+}

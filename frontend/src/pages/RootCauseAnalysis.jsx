@@ -110,6 +110,7 @@ function RootCauseAnalysis() {
   }
 
   const analysis = result?.analysis
+  const bestMatch = result?.similar_incidents?.[0] ?? null
 
   return (
     <section className="page-section">
@@ -235,6 +236,57 @@ function RootCauseAnalysis() {
 
             <p>{analysis.probable_root_cause}</p>
           </article>
+          {bestMatch && (
+            <article className="panel">
+              <div className="panel-header">
+                <div>
+                  <p className="eyebrow">RAG RETRIEVAL</p>
+                  <h2>Most Similar Historical Incident</h2>
+                </div>
+                <span className="severity-badge high">
+                  {(Number(bestMatch.similarity) * 100).toFixed(1)}% Similar
+                </span>
+              </div>
+
+              <div className="two-column-grid">
+                <div>
+                  <strong>Incident type</strong>
+                  <p>{bestMatch.incident_type}</p>
+                </div>
+
+                <div>
+                  <strong>Service</strong>
+                  <p>{bestMatch.service_name}</p>
+                </div>
+
+                <div>
+                  <strong>Severity</strong>
+                  <p>{bestMatch.severity}</p>
+                </div>
+
+                <div>
+                  <strong>Previous incident</strong>
+                  <p>{bestMatch.description}</p>
+                </div>
+              </div>
+
+              <div>
+                <strong>Previous root cause</strong>
+                <p>{bestMatch.root_cause}</p>
+              </div>
+
+              <div>
+                <strong>Previous resolution</strong>
+                <p>{bestMatch.resolution}</p>
+              </div>
+
+              <p className="page-note">
+                This is the most similar historical incident retrieved by RAG.
+                Similarity indicates textual or semantic relevance, not proof
+                of the same root cause.
+              </p>
+            </article>
+          )}
 
           <div className="two-column-grid">
             <article className="panel">

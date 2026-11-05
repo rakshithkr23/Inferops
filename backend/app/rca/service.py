@@ -7,12 +7,17 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai.errors import APIError
 
-from app.rag.similarity_search import find_similar_incidents
+from app.rag.similarity_search import (
+    DEFAULT_MIN_SIMILARITY,
+    find_similar_incidents,
+)
 from app.schemas.rca import RCAAnalysis
+
 
 load_dotenv()
 
 MODEL_NAME = "gemini-3.6-flash"
+
 
 def analyze_incident(
     incident_type: str,
@@ -20,13 +25,14 @@ def analyze_incident(
     severity: str,
     description: str,
 ) -> dict:
-    """Analyze an incident using Gemini and historical RAG context."""
+    """Analyze an incident using Gemini and relevant historical RAG context."""
 
     api_key = os.getenv("GEMINI_API_KEY")
+
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY is not configured.")
 
-    if not description.strip():
+    if not description or not description.strip():
         raise ValueError("Incident description cannot be empty.")
 
     query = (
@@ -36,15 +42,26 @@ def analyze_incident(
         f"Description: {description}"
     )
 
-    # Check the duration of historical incident similarity search.
+    # Retrieve historical incidents that meet the similarity threshold.
     similarity_start = time.perf_counter()
+
     print("[RCA TIMING] Starting similarity search", flush=True)
 
-    similar_incidents = find_similar_incidents(query, limit=3)
+    similar_incidents = find_similar_incidents(
+        query,
+        limit=3,
+        min_similarity=DEFAULT_MIN_SIMILARITY,
+    )
 
     print(
         f"[RCA TIMING] Similarity search finished in "
         f"{time.perf_counter() - similarity_start:.2f} seconds",
+        flush=True,
+    )
+
+    print(
+        f"[RCA RAG] Retrieved {len(similar_incidents)} relevant incidents "
+        f"with minimum similarity {DEFAULT_MIN_SIMILARITY:.2f}",
         flush=True,
     )
 
@@ -61,18 +78,28 @@ def analyze_incident(
         for item in similar_incidents
     ]
 
+    if context:
+        historical_context = json.dumps(context, indent=2)
+    else:
+        historical_context = (
+            "No historical incidents met the minimum similarity threshold. "
+            "Do not assume a historical root cause applies to this incident."
+        )
+
     prompt = f"""
 You are the root-cause analysis assistant for InferOps.
 
-Analyze the current incident using the supplied incident details and
-historical incidents. Historical incidents are reference evidence, not
-proof that the current incident has the same root cause.
+Analyze the current incident using the supplied incident details
+and relevant historical incidents.
+
+Historical incidents are reference evidence, not proof that the
+current incident has the same root cause.
 
 Current incident:
 {query}
 
 Relevant historical incidents:
-{json.dumps(context, indent=2)}
+{historical_context}
 
 Return only a valid JSON object with these fields:
 {{
@@ -84,52 +111,45 @@ Return only a valid JSON object with these fields:
 }}
 
 Do not invent logs, metrics, Kubernetes events, or facts.
+
+If no relevant historical incidents are available, mention this
+limitation and base your analysis only on the current incident details.
+
 Distinguish confirmed evidence from hypotheses.
 """
 
     client = genai.Client(
-    api_key=api_key,
-    http_options={
-        "timeout": 90000,
-        "retry_options": {"attempts": 3},
-    },
-)
+        api_key=api_key,
+        http_options={
+            "timeout": 90000,
+            "retry_options": {"attempts": 3},
+        },
+    )
 
     try:
         gemini_start = time.perf_counter()
+
         print("[RCA TIMING] Starting Gemini request", flush=True)
 
-        # try:
-        #     response = client.interactions.create(
-        #         model=MODEL_NAME,
-        #         input=prompt,
-        #     )
-        # except APIError as exc:
-        #     print(
-        #         f"[RCA TIMING] Gemini API failed after "
-        #         f"{time.perf_counter() - gemini_start:.2f} seconds",
-        #         flush=True,
-        #     )
-        #     print(
-        #         f"[RCA ERROR] {type(exc).__name__}: {exc}",
-        #         flush=True,
-        #     )
-        #     status_code = getattr(exc, "code", None)
-
-        #     raise RuntimeError(
-        #         f"Gemini API request failed with status {status_code}."
-        #     ) from exc
         try:
             response = client.interactions.create(
                 model=MODEL_NAME,
                 input=prompt,
+                response_format={
+                    "type": "text",
+                    "mime_type": "application/json",
+                    "schema": RCAAnalysis.model_json_schema(),
+                },
             )
+
         except APIError as exc:
             print(
                 f"[RCA ERROR] {type(exc).__name__}: {exc}",
                 flush=True,
             )
+
             status_code = getattr(exc, "code", None)
+
             raise RuntimeError(
                 f"Gemini API request failed with status {status_code}."
             ) from exc
@@ -141,11 +161,13 @@ Distinguish confirmed evidence from hypotheses.
         )
 
         output_text = response.output_text
+
         if not output_text:
             raise RuntimeError("Gemini returned an empty response.")
 
         try:
             result = json.loads(output_text)
+
         except json.JSONDecodeError as exc:
             raise RuntimeError(
                 "Gemini returned a response that was not valid JSON."
@@ -153,6 +175,7 @@ Distinguish confirmed evidence from hypotheses.
 
         try:
             validated_result = RCAAnalysis.model_validate(result)
+
         except Exception as exc:
             raise RuntimeError(
                 "Gemini returned an invalid RCA response."

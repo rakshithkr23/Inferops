@@ -1,4 +1,5 @@
 import os
+import asyncio
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,14 +7,28 @@ from sqlalchemy.orm import Session
 
 from app.database.dependencies import get_db
 from app.routes import router
+from contextlib import asynccontextmanager
+
+from app.detection.monitor import monitor_demo_metrics
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    monitor_task = asyncio.create_task(monitor_demo_metrics())
+    yield
+    monitor_task.cancel()
+    try:
+        await monitor_task
+    except asyncio.CancelledError:
+        pass
 
 app = FastAPI(
     title="InferOps API",
     description="AI-Driven DevOps Incident Detection and Root Cause Analysis System",
-    version="0.1.0"
+    version="0.1.0",
+    lifespan=lifespan
 )
 
-cors_origins = [ 
+cors_origins = [
     origin.strip()
     for origin in os.getenv(
         "CORS_ORIGINS","http://localhost:5173"

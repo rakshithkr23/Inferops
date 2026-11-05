@@ -13,7 +13,7 @@ from app.models.rca_feedback import RCAFeedback
 from app.rag.similarity_search import find_similar_incidents
 from app.rca.workflow import rca_workflow
 from app.schemas.historical_incident import HistoricalIncidentCreate
-from app.schemas.incident import IncidentCreate
+from app.schemas.incident import IncidentCreate, IncidentStatusUpdate
 from app.schemas.rag import RAGSearchRequest, RAGSearchResponse
 from app.schemas.rca import RCARequest, RCAResponse
 from app.schemas.rca_feedback import RCAFeedbackCreate, RCAFeedbackResponse
@@ -62,6 +62,10 @@ def run_incident_detection(
     error_message: str | None = None,
     pod_status: str | None = None,
     restart_count: int = 0,
+    cpu_usage_percent: float | None = None,
+    memory_usage_percent: float | None = None,
+    container_status: str | None = None,
+    docker_restart_count: int = 0,
     db: Session = Depends(get_db),
 ):
     detected_incidents = detect_incidents(
@@ -71,6 +75,10 @@ def run_incident_detection(
         error_message=error_message,
         pod_status=pod_status,
         restart_count=restart_count,
+        cpu_usage_percent=cpu_usage_percent,
+        memory_usage_percent=memory_usage_percent,
+        container_status=container_status,
+        docker_restart_count=docker_restart_count,
     )
 
     saved_incidents = []
@@ -159,6 +167,44 @@ def get_incident(
         )
 
     return incident
+
+
+@router.patch("/incidents/{incident_id}/status")
+def update_incident_status(
+    incident_id: int,
+    status_update: IncidentStatusUpdate,
+    db: Session = Depends(get_db),
+):
+    try:
+        incident = db.query(Incident).filter(
+            Incident.id == incident_id
+        ).first()
+
+        if incident is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Incident not found.",
+            )
+
+        incident.status = status_update.status
+
+        db.commit()
+        db.refresh(incident)
+
+        return incident
+
+    except HTTPException:
+        db.rollback()
+        raise
+
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Failed to update incident status")
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to update incident status.",
+        ) from exc
 
 @router.post("/rag/search", response_model=RAGSearchResponse)
 def search_similar_historical_incidents(

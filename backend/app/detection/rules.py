@@ -67,3 +67,67 @@ def detect_unhealthy_workload(
         }
 
     return None
+
+def detect_high_cpu_usage(
+    cpu_usage_percent: float,
+    threshold: float = 80.0
+) -> dict | None:
+    if cpu_usage_percent > threshold:
+        return {
+            "type": "HIGH_CPU_USAGE",
+            "severity": "HIGH",
+            "description": (
+                f"CPU usage is {cpu_usage_percent}%, "
+                f"exceeding the threshold of {threshold}%."
+            )
+        }
+
+    return None
+
+def detect_high_memory_usage(
+    memory_usage_percent: float,
+    threshold: float = 85.0
+) -> dict | None:
+    if memory_usage_percent > threshold:
+        return {
+            "type": "HIGH_MEMORY_USAGE",
+            "severity": "HIGH",
+            "description": (
+                f"Memory usage is {memory_usage_percent}%, "
+                f"exceeding the threshold of {threshold}%."
+            )
+        }
+
+    return None
+
+def detect_unhealthy_container(
+    container_status: str,
+    restart_count: int = 0
+) -> dict | None:
+    unhealthy_statuses = {
+        "exited",
+        "dead",
+    }
+
+    if container_status.lower() in unhealthy_statuses:
+        return {
+            "type": "UNHEALTHY_DOCKER_CONTAINER",
+            "severity": "HIGH",
+            "description": (
+                f"Docker container is unhealthy: "
+                f"status={container_status}, "
+                f"restarts={restart_count}."
+            )
+        }
+
+    if restart_count >= 3:
+        return {
+            "type": "UNHEALTHY_DOCKER_CONTAINER",
+            "severity": "HIGH",
+            "description": (
+                f"Docker container has restarted "
+                f"{restart_count} times."
+            )
+        }
+
+    return None
