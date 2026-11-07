@@ -6,7 +6,6 @@ from sqlalchemy import text
 
 from app.database.connection import SessionLocal
 
-
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 
 # Initial relevance threshold. We can tune this after testing retrieval scores.

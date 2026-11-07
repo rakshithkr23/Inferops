@@ -13,7 +13,6 @@ from app.rag.similarity_search import (
 )
 from app.schemas.rca import RCAAnalysis
 
-
 load_dotenv()
 
 MODEL_NAME = "gemini-3.6-flash"

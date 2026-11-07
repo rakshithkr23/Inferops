@@ -1,180 +1,230 @@
-const incidents = [
+
+import { Link } from 'react-router-dom'
+
+const capabilities = [
   {
-    id: 'INC-1042',
-    title: 'Backend API response timeout',
-    service: 'inferops-backend',
-    severity: 'High',
-    status: 'Investigating',
-    time: '5 min ago',
+    icon: '◉',
+    title: 'Logs & Metrics Monitoring',
+    description:
+      'Collect and monitor application logs, system metrics, CPU usage, memory usage and service performance.',
+    tag: 'Observability',
   },
   {
-    id: 'INC-1041',
-    title: 'Database connection failure',
-    service: 'postgresql',
-    severity: 'Critical',
-    status: 'Open',
-    time: '18 min ago',
+    icon: '▣',
+    title: 'Docker & Kubernetes Monitoring',
+    description:
+      'Observe container activity, application health and Kubernetes workload status to identify infrastructure issues.',
+    tag: 'Infrastructure',
   },
   {
-    id: 'INC-1040',
-    title: 'Container restart detected',
-    service: 'inferops-worker',
-    severity: 'Medium',
-    status: 'Resolved',
-    time: '42 min ago',
+    icon: '⚡',
+    title: 'Automatic Incident Detection',
+    description:
+      'Identify abnormal conditions using monitoring data and predefined detection rules, then record incidents.',
+    tag: 'Detection',
+  },
+  {
+    icon: '✳',
+    title: 'AI Root Cause Analysis',
+    description:
+      'Use Gemini to investigate incidents, explain probable causes, examine evidence and recommend corrective actions.',
+    tag: 'Artificial Intelligence',
+  },
+  {
+    icon: '⌕',
+    title: 'Historical Incident Analysis',
+    description:
+      'Retrieve similar historical incidents using vector similarity search and pgvector to provide useful context for RCA.',
+    tag: 'RAG & pgvector',
+  },
+  {
+    icon: '✓',
+    title: 'Incident Management & Feedback',
+    description:
+      'Review detected incidents, update their status and submit feedback about the quality of RCA results.',
+    tag: 'Management',
+  },
+]
+
+const workflow = [
+  {
+    number: '01',
+    title: 'Monitor',
+    description:
+      'Collect application logs, system metrics and infrastructure information.',
+  },
+  {
+    number: '02',
+    title: 'Detect',
+    description:
+      'Analyze monitoring information and identify abnormal conditions.',
+  },
+  {
+    number: '03',
+    title: 'Investigate',
+    description:
+      'Retrieve relevant historical incidents and use AI to analyze the evidence.',
+  },
+  {
+    number: '04',
+    title: 'Resolve & Improve',
+    description:
+      'Review recommended actions, manage incident status and provide feedback.',
   },
 ]
 
 function Home() {
   return (
-    <div className="home-page">
-      <section className="page-heading">
-        <div>
-          <p className="eyebrow">OPERATIONS CENTER</p>
-          <h1>Overview</h1>
-          <p className="page-description">
-            Monitor incidents, investigate failures, and understand root causes.
+    <main className="home-page">
+      <section className="home-hero">
+        <div className="home-hero-content">
+          <span className="home-eyebrow">
+            AI-POWERED DEVOPS OBSERVABILITY
+          </span>
+
+          <h1>
+            Understand failures.
+            <br />
+            <span>Resolve incidents smarter.</span>
+          </h1>
+
+          <p className="home-hero-description">
+            InferOps is an AI-driven DevOps incident detection and root
+            cause analysis system. It brings monitoring, automated
+            incident detection and AI-assisted investigation together
+            to help engineers understand application failures.
+          </p>
+
+          <div className="home-hero-actions">
+            <Link to="/incidents" className="home-primary-link">
+              View incidents <span aria-hidden="true">→</span>
+            </Link>
+            <Link to="/logs-metrics" className="home-secondary-link">
+              Explore monitoring
+            </Link>
+          </div>
+
+          <div className="home-tech-line">
+            <span>FASTAPI</span>
+            <span>DOCKER</span>
+            <span>KUBERNETES</span>
+            <span>POSTGRESQL</span>
+            <span>GEMINI AI</span>
+          </div>
+        </div>
+
+        <div className="home-hero-visual" aria-label="InferOps incident analysis workflow">
+          <div className="home-visual-glow" />
+          <div className="home-visual-card">
+            <div className="home-visual-header">
+              <span className="home-visual-indicator" />
+              <span>INFEROPS INTELLIGENCE</span>
+              <span className="home-visual-live">SYSTEM</span>
+            </div>
+
+            <div className="home-visual-center">
+              <div className="home-visual-orbit orbit-outer" />
+              <div className="home-visual-orbit orbit-inner" />
+              <div className="home-visual-core">✳</div>
+              <span className="home-visual-node node-top">LOGS</span>
+              <span className="home-visual-node node-left">METRICS</span>
+              <span className="home-visual-node node-right">AI</span>
+              <span className="home-visual-node node-bottom">RCA</span>
+            </div>
+
+            <div className="home-visual-footer">
+              <span>Monitor</span>
+              <span>→</span>
+              <span>Detect</span>
+              <span>→</span>
+              <span>Analyze</span>
+            </div>
+          </div>
+          <p className="home-visual-caption">
+            From application signals to actionable insights
           </p>
         </div>
       </section>
 
-      <section className="metrics-grid" aria-label="Incident summary">
-        <article className="metric-card">
-          <div className="metric-top">
-            <span>Total incidents</span>
-            <span className="metric-icon purple">▦</span>
-          </div>
-          <div className="metric-value">24</div>
-          <p className="metric-note">Recorded in this demo</p>
-        </article>
+      <section className="home-section">
+        <div className="home-section-heading">
+          <span className="home-eyebrow">WHAT INFEROPS PROVIDES</span>
+          <h2>One platform. Multiple capabilities.</h2>
+          <p>
+            InferOps combines DevOps monitoring, incident management
+            and AI-assisted investigation in one application.
+          </p>
+        </div>
 
-        <article className="metric-card">
-          <div className="metric-top">
-            <span>Open incidents</span>
-            <span className="metric-icon orange">⚠</span>
-          </div>
-          <div className="metric-value">08</div>
-          <p className="metric-note">Require attention</p>
-        </article>
-
-        <article className="metric-card">
-          <div className="metric-top">
-            <span>Critical incidents</span>
-            <span className="metric-icon red">!</span>
-          </div>
-          <div className="metric-value">02</div>
-          <p className="metric-note">High-priority events</p>
-        </article>
-
-        <article className="metric-card">
-          <div className="metric-top">
-            <span>Services monitored</span>
-            <span className="metric-icon green">◈</span>
-          </div>
-          <div className="metric-value">05</div>
-          <p className="metric-note">Sample service inventory</p>
-        </article>
+        <div className="home-capability-grid">
+          {capabilities.map((item) => (
+            <article className="home-capability-card" key={item.title}>
+              <div className="home-capability-icon">{item.icon}</div>
+              <span className="home-capability-tag">{item.tag}</span>
+              <h3>{item.title}</h3>
+              <p>{item.description}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
-      <section className="content-grid">
-        <article className="panel incidents-panel">
-          <div className="panel-heading">
-            <div>
-              <h2>Recent incidents</h2>
-              <p>Latest events across your services</p>
-            </div>
-            <a href="#/incidents">
-              View all <span aria-hidden="true">→</span>
-            </a>
-          </div>
-
-          <div className="incident-table-wrap">
-            <table className="incident-table">
-              <thead>
-                <tr>
-                  <th>INCIDENT</th>
-                  <th>SERVICE</th>
-                  <th>SEVERITY</th>
-                  <th>STATUS</th>
-                  <th>TIME</th>
-                </tr>
-              </thead>
-              <tbody>
-                {incidents.map((incident) => (
-                  <tr key={incident.id}>
-                    <td>
-                      <strong className="incident-title">
-                        {incident.title}
-                      </strong>
-                      <span className="incident-id">{incident.id}</span>
-                    </td>
-                    <td>
-                      <span className="service-name">{incident.service}</span>
-                    </td>
-                    <td>
-                      <span
-                        className={`severity severity-${incident.severity.toLowerCase()}`}
-                      >
-                        {incident.severity}
-                      </span>
-                    </td>
-                    <td>
-                      <span
-                        className={`incident-status status-${incident.status.toLowerCase()}`}
-                      >
-                        {incident.status}
-                      </span>
-                    </td>
-                    <td className="time-cell">{incident.time}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </article>
-
-        <article className="panel rca-panel">
-          <div className="panel-heading">
-            <div>
-              <h2>AI root cause analysis</h2>
-              <p>Investigation assistant</p>
-            </div>
-            <span className="ai-icon" aria-hidden="true">✳</span>
-          </div>
-
-          <div className="rca-illustration" aria-hidden="true">
-            <div className="rca-orbit orbit-one" />
-            <div className="rca-orbit orbit-two" />
-            <div className="rca-core">✳</div>
-            <span className="orbit-node node-one">⌕</span>
-            <span className="orbit-node node-two">▤</span>
-            <span className="orbit-node node-three">◈</span>
-          </div>
-
-          <h3>Turn incidents into insights</h3>
-          <p className="rca-description">
-            Investigate failures and review root cause recommendations
-            supported by incident evidence.
+      <section className="home-workflow-section">
+        <div className="home-section-heading">
+          <span className="home-eyebrow">HOW IT WORKS</span>
+          <h2>From detection to investigation.</h2>
+          <p>
+            A simple workflow that helps engineers move from identifying
+            an issue to understanding why it happened.
           </p>
+        </div>
 
-          <a className="secondary-button" href="#/root-cause-analysis">
-            Explore RCA <span aria-hidden="true">→</span>
-          </a>
-
-          <p className="demo-note">
-            <span className="status-dot" />
-            Demo interface · Backend integration pending
-          </p>
-        </article>
+        <div className="home-workflow-grid">
+          {workflow.map((step, index) => (
+            <article className="home-workflow-card" key={step.number}>
+              <div className="home-workflow-number">{step.number}</div>
+              <h3>{step.title}</h3>
+              <p>{step.description}</p>
+              {index !== workflow.length - 1 && (
+                <span className="home-workflow-arrow" aria-hidden="true">
+                  →
+                </span>
+              )}
+            </article>
+          ))}
+        </div>
       </section>
 
-      <footer className="dashboard-footer">
-        <span>
-          InferOps <span className="footer-divider">/</span> Incident intelligence
-        </span>
-        <span>Development preview</span>
+      <section className="home-bottom-section">
+        <div>
+          <span className="home-eyebrow">BUILT FOR DEVOPS OPERATIONS</span>
+          <h2>Better visibility. Clearer investigations.</h2>
+          <p>
+            Explore the monitoring dashboard and incident records to
+            understand how InferOps brings operational information
+            together.
+          </p>
+        </div>
+        <Link to="/incidents" className="home-primary-link">
+          Go to incidents <span aria-hidden="true">→</span>
+        </Link>
+      </section>
+
+      <footer className="home-footer">
+        <div className="home-footer-brand">
+          <strong>✳ InferOps</strong>
+          <p>
+            AI-Driven DevOps Incident Detection & Root Cause Analysis System
+          </p>
+        </div>
+        <div className="home-footer-meta">
+          <span>MCA Project</span>
+          <span>Built with FastAPI, React, PostgreSQL & Gemini</span>
+        </div>
+        <div className="home-footer-copy">
+          © 2026 InferOps. Academic project.
+        </div>
       </footer>
-    </div>
+    </main>
   )
 }
 

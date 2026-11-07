@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from 'react'
-import { API_URL } from '../config'
+import { useSearchParams} from 'react-router-dom'
+import { apiFetch } from '../config'
 
 function formatRelativeTime(dateValue) {
   if (!dateValue) return '—'
@@ -24,61 +25,163 @@ function formatLabel(value) {
   return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
 }
 
+const SETTINGS_KEY = 'inferops.settings.v1'
+
+function readIncidentPreferences() {
+  const defaults = {
+    autoRefresh: true,
+    refreshInterval: '30',
+    minimumSeverity: 'all',
+    browserNotifications: false,
+  }
+
+  try {
+    return {
+      ...defaults,
+      ...JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'),
+    }
+  } catch {
+    return defaults
+  }
+}
+
 function Incidents() {
+  const [searchParams] = useSearchParams()
+  const searchQuery = (searchParams.get('q') || '').trim().toLowerCase()
   const [incidents, setIncidents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updatingId, setUpdatingId] = useState(null)
+  const [preferences, setPreferences] = useState(readIncidentPreferences)
 
   useEffect(() => {
-    const controller = new AbortController()
+  let active = true
+  let firstFetch = true
+  let requestInProgress = false
+  let previousIncidentIds = new Set()
 
-    async function fetchIncidents() {
-      try {
+  async function fetchIncidents() {
+    if (requestInProgress) return
+
+    requestInProgress = true
+
+    try {
+      if (firstFetch && active) {
         setLoading(true)
-        setError('')
+      }
 
-        const response = await fetch(`${API_URL}/incidents`, {
-          signal: controller.signal,
-        })
+      const response = await apiFetch(`/incidents`)
 
-        if (!response.ok) {
-          throw new Error(`Failed to load incidents (${response.status})`)
+      if (!response.ok) {
+        throw new Error(`Failed to load incidents (${response.status})`)
+      }
+
+      const data = await response.json()
+
+      if (!Array.isArray(data)) {
+        throw new Error('Unexpected incident data received from the backend.')
+      }
+
+      if (!active) return
+
+      const mappedIncidents = data.map((incident) => ({
+        id: incident.id,
+        displayId: `INC-${incident.id}`,
+        title: incident.title,
+        service: incident.service_name || 'Unknown',
+        severity: formatLabel(incident.severity),
+        status: (incident.status || 'OPEN').toUpperCase(),
+        time: formatRelativeTime(incident.created_at),
+        description: incident.description || 'No description available.',
+      }))
+
+      const currentIds = new Set(mappedIncidents.map((item) => item.id))
+
+      // Notify only about incidents appearing after the initial load.
+      if (
+        !firstFetch &&
+        preferences.browserNotifications &&
+        'Notification' in window &&
+        Notification.permission === 'granted'
+      ) {
+        const severityRank = {
+          low: 1,
+          medium: 2,
+          high: 3,
+          critical: 4,
         }
 
-        const data = await response.json()
+        const minimumRank =
+          severityRank[preferences.minimumSeverity] || 0
 
-        if (!Array.isArray(data)) {
-          throw new Error('Unexpected incident data received from the backend.')
-        }
+        mappedIncidents
+          .filter((incident) => {
+            const isNew = !previousIncidentIds.has(incident.id)
+            const meetsSeverity =
+              (severityRank[incident.severity.toLowerCase()] || 0) >= minimumRank
 
-        setIncidents(
-          data.map((incident) => ({
-            id: incident.id,
-            displayId: `INC-${incident.id}`,
-            title: incident.title,
-            service: incident.service_name || 'Unknown',
-            severity: formatLabel(incident.severity),
-            status: (incident.status || 'OPEN').toUpperCase(),
-            time: formatRelativeTime(incident.created_at),
-            description: incident.description || 'No description available.',
-          }))
-        )
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          setError(err.message || 'Unable to load incidents.')
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false)
-        }
+            return isNew && meetsSeverity
+          })
+          .forEach((incident) => {
+            new Notification(`New incident: ${incident.displayId}`, {
+              body: `${incident.title} · ${incident.severity} · ${incident.service}`,
+              tag: `inferops-incident-${incident.id}`,
+            })
+          })
+      }
+
+      previousIncidentIds = currentIds
+      firstFetch = false
+
+      setIncidents(mappedIncidents)
+      setError('')
+    } catch (err) {
+      if (active) {
+        setError(err.message || 'Unable to load incidents.')
+      }
+    } finally {
+      requestInProgress = false
+
+      if (active) {
+        setLoading(false)
       }
     }
+  }
 
-    fetchIncidents()
+  fetchIncidents()
 
-    return () => controller.abort()
-  }, [])
+  const interval = preferences.autoRefresh
+    ? setInterval(fetchIncidents, Number(preferences.refreshInterval) * 1000)
+    : null
+
+  return () => {
+    active = false
+
+    if (interval) {
+      clearInterval(interval)
+    }
+  }
+}, [
+  preferences.autoRefresh,
+  preferences.refreshInterval,
+  preferences.browserNotifications,
+  preferences.minimumSeverity,
+])
+
+useEffect(() => {
+  function handleSettingsUpdate(event) {
+    setPreferences(readIncidentPreferences())
+  }
+
+  window.addEventListener('inferops:settings-updated', handleSettingsUpdate)
+
+  return () => {
+    window.removeEventListener(
+      'inferops:settings-updated',
+      handleSettingsUpdate
+    )
+  }
+}, [])
 
   async function updateIncidentStatus(incidentId, newStatus) {
     const currentIncident = incidents.find(
@@ -91,8 +194,8 @@ function Incidents() {
       setUpdatingId(incidentId)
       setError('')
 
-      const response = await fetch(
-        `${API_URL}/incidents/${incidentId}/status`,
+      const response = await apiFetch(
+        `/incidents/${incidentId}/status`,
         {
           method: 'PATCH',
           headers: {
@@ -137,6 +240,37 @@ function Incidents() {
   const resolvedCount = incidents.filter(
     (item) => item.status === 'RESOLVED'
   ).length
+
+const severityRank = {
+  low: 1,
+  medium: 2,
+  high: 3,
+  critical: 4,
+}
+
+const minimumSeverityRank =
+  severityRank[preferences.minimumSeverity] || 0
+
+const filteredIncidents = incidents.filter((incident) => {
+  const meetsSeverity =
+    (severityRank[incident.severity.toLowerCase()] || 0) >=
+    minimumSeverityRank
+
+  const matchesSearch =
+    !searchQuery ||
+    [
+      incident.displayId,
+      incident.title,
+      incident.service,
+      incident.severity,
+      incident.status,
+      incident.description,
+    ].some((value) =>
+      String(value || '').toLowerCase().includes(searchQuery)
+    )
+
+  return meetsSeverity && matchesSearch
+})
 
   return (
     <div className="incidents-page">
@@ -207,8 +341,14 @@ function Incidents() {
 
         {loading ? (
           <p className="metric-note">Loading incidents from backend...</p>
-        ) : incidents.length === 0 ? (
-          <p className="metric-note">No incidents found.</p>
+        ) : filteredIncidents.length === 0 ? (
+          <p className="metric-note">
+  {searchQuery
+    ? `No incidents match "${searchQuery}" with the selected severity filter.`
+    : preferences.minimumSeverity !== 'all'
+      ? `No incidents meet the ${preferences.minimumSeverity} severity filter.`
+      : 'No incidents found.'}
+</p>
         ) : (
           <div className="incident-table-wrap">
             <table className="incident-table">
@@ -222,7 +362,7 @@ function Incidents() {
                 </tr>
               </thead>
               <tbody>
-                {incidents.map((incident) => (
+                {filteredIncidents.map((incident) => (
                   <tr key={incident.id} title={incident.description}>
                     <td>
                       <strong className="incident-title">

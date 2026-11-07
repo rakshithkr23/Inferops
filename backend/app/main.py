@@ -1,15 +1,16 @@
-import os
 import asyncio
+import os
+from contextlib import asynccontextmanager
+from app.auth import auth_router
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from app.database.dependencies import get_db
-from app.routes import router
-from contextlib import asynccontextmanager
-
 from app.detection.monitor import monitor_demo_metrics
+from app.routes import router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -45,7 +46,7 @@ app.add_middleware(
 )
 
 app.include_router(router)
-
+app.include_router(auth_router)
 
 @app.get("/")
 def root():

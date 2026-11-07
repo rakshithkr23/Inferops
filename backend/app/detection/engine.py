@@ -1,11 +1,11 @@
 from app.detection.rules import (
     detect_application_exception,
-    detect_high_error_rate,
-    detect_http_500,
-    detect_unhealthy_workload,
     detect_high_cpu_usage,
+    detect_high_error_rate,
     detect_high_memory_usage,
+    detect_http_500,
     detect_unhealthy_container,
+    detect_unhealthy_workload,
 )
 
 

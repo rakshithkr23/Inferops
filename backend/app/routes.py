@@ -5,6 +5,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.auth import get_current_user
 from app.database.dependencies import get_db
 from app.detection.engine import detect_incidents
 from app.models.historical_incident import HistoricalIncident
@@ -20,7 +21,7 @@ from app.schemas.rca_feedback import RCAFeedbackCreate, RCAFeedbackResponse
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(get_current_user)])
 
 @router.post("/incidents")
 def create_incident(

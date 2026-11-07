@@ -3,7 +3,6 @@ import logging
 import os
 
 import httpx
-
 from app.database.connection import SessionLocal
 from app.detection.engine import detect_incidents
 from app.models.incident import Incident

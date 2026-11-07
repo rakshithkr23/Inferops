@@ -1,12 +1,13 @@
 import logging
 import time
 from collections import defaultdict, deque
+from datetime import UTC, datetime
 from threading import Lock
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi import FastAPI, Request
-from pydantic import BaseModel
+
 import psutil
-from datetime import datetime, timezone
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,7 +44,7 @@ metrics_history = deque(maxlen=60)
 
 
 def record_request_metrics(status_code, elapsed):
-    timestamp = datetime.now(timezone.utc).replace(
+    timestamp = datetime.now(UTC).replace(
         second=0,
         microsecond=0
     )

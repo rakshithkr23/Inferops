@@ -1,6 +1,6 @@
 
 import { useState } from 'react'
-import { API_URL } from '../config'
+import { apiFetch } from '../config'
 
 function Feedback() {
   const [rating, setRating] = useState(0)
@@ -21,7 +21,7 @@ function Feedback() {
     setMessage('')
 
     try {
-      const response = await fetch(`${API_URL}/rca/feedback`, {
+      const response = await apiFetch(`/rca/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
