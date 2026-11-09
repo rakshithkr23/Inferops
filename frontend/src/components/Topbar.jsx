@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { apiFetch } from '../config'
 
-function Topbar({ theme, onToggleTheme, pageTitle }) {
+function Topbar({ theme, onToggleTheme }) {
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -13,6 +13,16 @@ function Topbar({ theme, onToggleTheme, pageTitle }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  function handleSearch(event) {
+     if (event.key !== 'Enter') return
+
+  const query = searchQuery.trim()
+
+  if (!query) return
+
+     navigate(`/incidents?q=${encodeURIComponent(query)}`)
+ }
+
   const [user, setUser] = useState(null)
   const [loggingOut, setLoggingOut] = useState(false)
   const [googleError, setGoogleError] = useState('')
@@ -24,7 +34,7 @@ function Topbar({ theme, onToggleTheme, pageTitle }) {
 
       if (response.ok) {
         const data = await response.json()
-        setUser(data)
+        setUser(data.user)
       }
     } catch (error) {
       console.error('Profile loading failed:', error)
@@ -230,13 +240,8 @@ function Topbar({ theme, onToggleTheme, pageTitle }) {
 
   return (
     <header className="topbar" ref={topbarRef}>
+      {/* Search bar on the left */}
       <div className="topbar-left">
-        <div className="topbar-title">
-          <h1>{pageTitle}</h1>
-        </div>
-      </div>
-
-      <div className="topbar-right">
         <div className="topbar-search">
           <svg
             viewBox="0 0 24 24"
@@ -249,10 +254,11 @@ function Topbar({ theme, onToggleTheme, pageTitle }) {
 
           <input
             type="search"
-            placeholder="Search dashboard..."
+            placeholder="Search incidents by ID, title, service..."
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            aria-label="Search dashboard"
+            onKeyDown={handleSearch}
+            aria-label="Search incidents and services"
           />
 
           {searchQuery && (
@@ -266,7 +272,10 @@ function Topbar({ theme, onToggleTheme, pageTitle }) {
             </button>
           )}
         </div>
+      </div>
 
+      {/* Actions on the right */}
+      <div className="topbar-right">
         <span className="demo-badge">DEMO DATA</span>
 
         <button

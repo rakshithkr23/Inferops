@@ -72,15 +72,15 @@ function Feedback() {
           </p>
 
           <div className="feedback-benefit">
-            <span aria-hidden="true">✓</span>
+            <span aria-hidden="true">→ </span>
             Rate the RCA experience
           </div>
           <div className="feedback-benefit">
-            <span aria-hidden="true">✓</span>
+            <span aria-hidden="true">→ </span>
             Report missing or unclear evidence
           </div>
           <div className="feedback-benefit">
-            <span aria-hidden="true">✓</span>
+            <span aria-hidden="true">→ </span>
             Suggest improvements
           </div>
         </article>

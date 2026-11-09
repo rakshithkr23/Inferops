@@ -73,7 +73,6 @@ function Sidebar({ collapsed, onToggle }) {
           {!collapsed && (
             <div className="sidebar-copy">
               <strong>InferOps Admin</strong>
-              <small>Project workspace</small>
             </div>
           )}
         </div>

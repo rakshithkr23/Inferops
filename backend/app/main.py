@@ -1,12 +1,12 @@
 import asyncio
 import os
 from contextlib import asynccontextmanager
-from app.auth import auth_router
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
+from app.auth import auth_router
 from app.database.dependencies import get_db
 from app.detection.monitor import monitor_demo_metrics
 from app.routes import router

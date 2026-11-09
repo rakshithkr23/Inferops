@@ -10,6 +10,7 @@ from google.genai.errors import APIError
 BACKEND_DIR = Path(__file__).resolve().parents[1] / "backend"
 sys.path.insert(0, str(BACKEND_DIR))
 
+from app.auth import get_current_user
 from app.main import app
 from app.rca.service import MODEL_NAME, analyze_incident
 
@@ -150,11 +151,16 @@ def test_rca_api_returns_expected_response():
         "description": "PostgreSQL connection attempts are failing.",
     }
 
-    with patch(
-        "app.routes.rca_workflow.invoke",
-        return_value={"rca_result": fake_result},
-    ) as mocked_workflow:
-        response = client.post("/rca/analyze", json=payload)
+    app.dependency_overrides[get_current_user] = lambda: None
+
+    try:
+        with patch(
+            "app.routes.rca_workflow.invoke",
+            return_value={"rca_result": fake_result},
+        ) as mocked_workflow:
+            response = client.post("/rca/analyze", json=payload)
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
 
     assert response.status_code == 200
     assert response.json() == fake_result

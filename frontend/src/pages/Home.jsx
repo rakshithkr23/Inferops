@@ -209,22 +209,40 @@ function Home() {
         </Link>
       </section>
 
-      <footer className="home-footer">
-        <div className="home-footer-brand">
-          <strong>✳ InferOps</strong>
-          <p>
-            AI-Driven DevOps Incident Detection & Root Cause Analysis System
-          </p>
-        </div>
-        <div className="home-footer-meta">
-          <span>MCA Project</span>
-          <span>Built with FastAPI, React, PostgreSQL & Gemini</span>
-        </div>
-        <div className="home-footer-copy">
-          © 2026 InferOps. Academic project.
-        </div>
-      </footer>
-    </main>
+<footer className="home-footer">
+  <div className="home-footer-brand">
+    <strong>✳ InferOps</strong>
+    <p>
+      AI-powered DevOps observability and incident intelligence.
+    </p>
+  </div>
+
+  <div className="home-footer-platform">
+    <h4>Platform</h4>
+    <span>Incident Detection</span>
+    <span>Root Cause Analysis</span>
+    <span>Service Monitoring</span>
+  </div>
+
+  <div className="home-footer-resources">
+    <h4>Resources</h4>
+    <a href="/docs">Documentation</a>
+    <a
+      href="https://github.com/rakshithkr23/Inferops"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      GitHub Repository
+    </a>
+    <a href="/about">About InferOps</a>
+  </div>
+
+  <div className="home-footer-bottom">
+    <span>© 2026 InferOps. All rights reserved.</span>
+    <span>Built with AI & DevOps</span>
+  </div>
+</footer>
+         </main>
   )
 }
 

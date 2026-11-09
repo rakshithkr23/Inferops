@@ -1,4 +1,5 @@
 [lint.per-file-ignores]
+"backend/app/auth.py" = ["B008"]
 "backend/app/main.py" = ["B008"]
 "backend/app/routes.py" = ["B008", "BLE001"]
 "backend/main.py" = ["B008"]

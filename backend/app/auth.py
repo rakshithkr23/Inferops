@@ -1,5 +1,4 @@
 import os
-import time
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from google.auth.transport.requests import Request as GoogleRequest
@@ -10,15 +9,13 @@ from itsdangerous import (
     URLSafeTimedSerializer,
 )
 from pwdlib import PasswordHash
+from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-
-from pydantic import BaseModel
 
 from app.database.dependencies import get_db
 from app.models.user import User
 from app.schemas.auth import UserLogin, UserRegistration
-
 
 auth_router = APIRouter()
 

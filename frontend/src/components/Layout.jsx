@@ -1,13 +1,13 @@
 
 import { useEffect, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar.jsx'
 import Topbar from './Topbar.jsx'
 
 const STORAGE_KEY = 'inferops.settings.v1'
 
 const defaultSettings = {
-  theme: 'dark',
+  theme: 'system',
   compactMode: false,
   reducedMotion: false,
 }
@@ -15,6 +15,7 @@ const defaultSettings = {
 function readSettings() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
+
     return saved
       ? { ...defaultSettings, ...JSON.parse(saved) }
       : defaultSettings
@@ -26,20 +27,34 @@ function readSettings() {
 function Layout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [preferences, setPreferences] = useState(readSettings)
-  const location = useLocation()
 
-  const pageTitles = {
-    '/': 'Overview',
-    '/incidents': 'Incidents',
-    '/root-cause-analysis': 'Root Cause Analysis',
-    '/services': 'Services',
-    '/logs-metrics': 'Logs & Metrics',
-    '/feedback': 'Feedback',
-    '/settings': 'Settings',
-  }
+  const [systemDark, setSystemDark] = useState(
+    () => window.matchMedia('(prefers-color-scheme: dark)').matches
+  )
 
-  const pageTitle = pageTitles[location.pathname] || 'Overview'
+  // Track operating system theme changes.
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const onChange = (event) => setSystemDark(event.matches)
 
+    media.addEventListener('change', onChange)
+
+    return () => media.removeEventListener('change', onChange)
+  }, [])
+
+  // Resolve the selected theme.
+  const resolvedTheme =
+    preferences.theme === 'system'
+      ? (systemDark ? 'dark' : 'light')
+      : preferences.theme
+
+  // Apply the resolved theme to the document.
+  useEffect(() => {
+    document.documentElement.dataset.theme = resolvedTheme
+    document.documentElement.style.colorScheme = resolvedTheme
+  }, [resolvedTheme])
+
+  // Listen for settings changes from the Settings page.
   useEffect(() => {
     function handleSettingsUpdate(event) {
       setPreferences({
@@ -61,11 +76,12 @@ function Layout() {
     }
   }, [])
 
+  // Toggle between Dark and Light themes.
   function toggleTheme() {
     setPreferences((current) => {
       const updated = {
         ...current,
-        theme: current.theme === 'dark' ? 'light' : 'dark',
+        theme: resolvedTheme === 'dark' ? 'light' : 'dark',
       }
 
       try {
@@ -74,7 +90,11 @@ function Layout() {
         )
 
         const merged = { ...saved, ...updated }
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(merged))
+
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify(merged)
+        )
 
         window.dispatchEvent(
           new CustomEvent('inferops:settings-updated', {
@@ -93,7 +113,7 @@ function Layout() {
     <div
       className={[
         'dashboard',
-        `theme-${preferences.theme}`,
+        `theme-${resolvedTheme}`,
         sidebarCollapsed ? 'sidebar-collapsed' : '',
         preferences.compactMode ? 'compact-mode' : '',
         preferences.reducedMotion ? 'reduced-motion' : '',
@@ -106,9 +126,8 @@ function Layout() {
 
       <main className="main-content">
         <Topbar
-          theme={preferences.theme}
+          theme={resolvedTheme}
           onToggleTheme={toggleTheme}
-          pageTitle={pageTitle}
         />
 
         <div className="page-content">
