@@ -1,6 +1,6 @@
 
 import { useState } from 'react'
-import { API_URL } from '../config'
+import { API_URL, apiFetch } from '../config'
 
 function RootCauseAnalysis() {
   const [form, setForm] = useState({
@@ -32,7 +32,7 @@ function RootCauseAnalysis() {
     setFeedbackLoading(false)
 
     try {
-      const response = await fetch(`${API_URL}/rca/analyze`, {
+      const response = await apiFetch(`/rca/analyze`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
@@ -57,7 +57,10 @@ function RootCauseAnalysis() {
       console.log('InferOps RCA API response:', data)
       setResult(data)
     } catch (err) {
-      setError(err.message || 'Could not connect to the InferOps backend.')
+      const message = err instanceof TypeError
+        ? `Could not reach the InferOps API at ${API_URL}. Check that the backend is running and that the dashboard is using the correct API URL.`
+        : err.message || 'RCA analysis failed. Check the backend logs for details.'
+      setError(message)
     } finally {
       setLoading(false)
     }
@@ -76,7 +79,7 @@ function RootCauseAnalysis() {
     setFeedbackError('')
 
     try {
-      const response = await fetch(`${API_URL}/rca/feedback`, {
+      const response = await apiFetch(`/rca/feedback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -107,6 +110,7 @@ function RootCauseAnalysis() {
   }
 
   const analysis = result?.analysis
+  const bestMatch = result?.similar_incidents?.[0] ?? null
 
   return (
     <section className="page-section">
@@ -232,6 +236,57 @@ function RootCauseAnalysis() {
 
             <p>{analysis.probable_root_cause}</p>
           </article>
+          {bestMatch && (
+            <article className="panel">
+              <div className="panel-header">
+                <div>
+                  <p className="eyebrow">RAG RETRIEVAL</p>
+                  <h2>Most Similar Historical Incident</h2>
+                </div>
+                <span className="severity-badge high">
+                  {(Number(bestMatch.similarity) * 100).toFixed(1)}% Similar
+                </span>
+              </div>
+
+              <div className="two-column-grid">
+                <div>
+                  <strong>Incident type</strong>
+                  <p>{bestMatch.incident_type}</p>
+                </div>
+
+                <div>
+                  <strong>Service</strong>
+                  <p>{bestMatch.service_name}</p>
+                </div>
+
+                <div>
+                  <strong>Severity</strong>
+                  <p>{bestMatch.severity}</p>
+                </div>
+
+                <div>
+                  <strong>Previous incident</strong>
+                  <p>{bestMatch.description}</p>
+                </div>
+              </div>
+
+              <div>
+                <strong>Previous root cause</strong>
+                <p>{bestMatch.root_cause}</p>
+              </div>
+
+              <div>
+                <strong>Previous resolution</strong>
+                <p>{bestMatch.resolution}</p>
+              </div>
+
+              <p className="page-note">
+                This is the most similar historical incident retrieved by RAG.
+                Similarity indicates textual or semantic relevance, not proof
+                of the same root cause.
+              </p>
+            </article>
+          )}
 
           <div className="two-column-grid">
             <article className="panel">

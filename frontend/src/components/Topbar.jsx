@@ -1,210 +1,506 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 
-function Topbar({ theme, onToggleTheme, pageTitle }) {
+import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { apiFetch } from '../config'
+
+function Topbar({ theme, onToggleTheme }) {
   const navigate = useNavigate()
+  const location = useLocation()
 
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [profileOpen, setProfileOpen] = useState(false)
+  const topbarRef = useRef(null)
+  const googleButtonRef = useRef(null)
+
+  const [openMenu, setOpenMenu] = useState({
+    type: null,
+    path: location.pathname,
+  })
+
+  const profileOpen =
+    openMenu.type === 'profile' && openMenu.path === location.pathname
+
+  const notificationsOpen =
+    openMenu.type === 'notifications' && openMenu.path === location.pathname
+
   const [searchQuery, setSearchQuery] = useState('')
 
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: 'Database connection failure',
-      detail: 'PostgreSQL · Critical incident',
-      time: '18 min ago',
-      read: false,
-    },
-    {
-      id: 2,
-      title: 'Backend API response timeout',
-      detail: 'inferops-backend · High severity',
-      time: '5 min ago',
-      read: false,
-    },
-  ])
-
-  const unreadCount = notifications.filter(
-    (notification) => !notification.read,
-  ).length
-
-  function markAllAsRead() {
-    setNotifications((current) =>
-      current.map((notification) => ({
-        ...notification,
-        read: true,
-      })),
-    )
-  }
-
-  function handleSearchSubmit(event) {
-    event.preventDefault()
+  function handleSearch(event) {
+    if (event.key !== 'Enter') return
 
     const query = searchQuery.trim()
 
     if (!query) return
 
-    // Preserve the search query while opening the RCA page.
-    navigate(
-      `/root-cause-analysis?q=${encodeURIComponent(query)}`,
-    )
-    setNotificationsOpen(false)
-    setProfileOpen(false)
+    navigate(`/incidents?q=${encodeURIComponent(query)}`)
+  }
+
+  const [user, setUser] = useState(null)
+  const [loggingOut, setLoggingOut] = useState(false)
+  const [googleError, setGoogleError] = useState('')
+  const [googleMessage, setGoogleMessage] = useState('')
+
+  async function loadUser() {
+    try {
+      const response = await apiFetch('/auth/me')
+
+      if (response.ok) {
+        const data = await response.json()
+        setUser(data.user)
+      }
+    } catch (error) {
+      console.error('Profile loading failed:', error)
+    }
+  }
+
+  useEffect(() => {
+    let active = true
+
+    apiFetch('/auth/me')
+      .then(async (response) => {
+        if (!response.ok) return null
+        return response.json()
+      })
+      .then((data) => {
+        if (active && data) {
+          setUser(data.user)
+        }
+      })
+      .catch((error) => {
+        console.error('Profile loading failed:', error)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
+  // Close menus when clicking outside or pressing Escape.
+  useEffect(() => {
+    function closeMenus() {
+      setOpenMenu({ type: null, path: '' })
+    }
+
+    function handleOutsideClick(event) {
+      if (
+        topbarRef.current &&
+        !topbarRef.current.contains(event.target)
+      ) {
+        closeMenus()
+      }
+    }
+
+    function handleEscape(event) {
+      if (event.key === 'Escape') {
+        closeMenus()
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    document.addEventListener('touchstart', handleOutsideClick)
+    document.addEventListener('keydown', handleEscape)
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick)
+      document.removeEventListener('touchstart', handleOutsideClick)
+      document.removeEventListener('keydown', handleEscape)
+    }
+  }, [])
+
+  // Initialize Google account linking when the profile menu is open.
+  useEffect(() => {
+    if (!profileOpen || user?.connected_methods?.includes('google')) {
+      return
+    }
+
+    let active = true
+    let script = null
+    let handleScriptLoad = null
+
+    function initializeGoogle() {
+      if (!active || !window.google?.accounts?.id) return
+
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+
+      if (!clientId || !googleButtonRef.current) {
+        setGoogleError('Google Sign-In is not configured.')
+        return
+      }
+
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+
+        callback: async (response) => {
+          try {
+            setGoogleError('')
+            setGoogleMessage('Connecting Google account...')
+
+            const result = await apiFetch('/auth/google/link', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                credential: response.credential,
+              }),
+            })
+
+            const data = await result.json()
+
+            if (!result.ok) {
+              throw new Error(
+                data.detail || 'Google account linking failed.'
+              )
+            }
+
+            setGoogleMessage('Google account connected successfully.')
+            await loadUser()
+          } catch (error) {
+            setGoogleMessage('')
+            setGoogleError(error.message)
+          }
+        },
+      })
+
+      if (!googleButtonRef.current) return
+
+      googleButtonRef.current.innerHTML = ''
+
+      window.google.accounts.id.renderButton(
+        googleButtonRef.current,
+        {
+          theme: theme === 'dark' ? 'filled_black' : 'outline',
+          size: 'large',
+          text: 'continue_with',
+          shape: 'rectangular',
+          width: 260,
+        }
+      )
+    }
+
+    if (window.google?.accounts?.id) {
+      initializeGoogle()
+    } else {
+      script = document.querySelector(
+        'script[src="https://accounts.google.com/gsi/client"]'
+      )
+
+      if (!script) {
+        script = document.createElement('script')
+        script.src = 'https://accounts.google.com/gsi/client'
+        script.async = true
+        script.defer = true
+        document.head.appendChild(script)
+      }
+
+      handleScriptLoad = initializeGoogle
+      script.addEventListener('load', handleScriptLoad)
+    }
+
+    return () => {
+      active = false
+
+      if (script && handleScriptLoad) {
+        script.removeEventListener('load', handleScriptLoad)
+      }
+    }
+  }, [profileOpen, user?.connected_methods, theme])
+
+  async function handleLogout() {
+    if (loggingOut) return
+
+    setLoggingOut(true)
+
+    try {
+      const response = await apiFetch('/auth/logout', {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        navigate('/login', { replace: true })
+      } else {
+        setLoggingOut(false)
+      }
+    } catch (error) {
+      console.error('Logout failed:', error)
+      setLoggingOut(false)
+    }
+  }
+
+  function openSettings() {
+    setOpenMenu({ type: null, path: '' })
+    navigate('/settings')
+  }
+
+  function toggleNotifications() {
+    setOpenMenu((current) => ({
+      type:
+        current.type === 'notifications' &&
+        current.path === location.pathname
+          ? null
+          : 'notifications',
+      path: location.pathname,
+    }))
+  }
+
+  function toggleProfile() {
+    setOpenMenu((current) => ({
+      type:
+        current.type === 'profile' &&
+        current.path === location.pathname
+          ? null
+          : 'profile',
+      path: location.pathname,
+    }))
+  }
+
+  const displayName = user?.full_name || 'InferOps User'
+
+  const initials = user?.full_name
+    ? user.full_name
+        .trim()
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((part) => part[0])
+        .join('')
+        .toUpperCase()
+    : 'IO'
+
+  const googleConnected =
+    user?.connected_methods?.includes('google') || false
+
+  const connectedMethods = user?.connected_methods || []
+
+  function formatMethod(method) {
+    if (method === 'google') return 'Google'
+    if (method === 'phone') return 'Phone + Password'
+    if (method === 'email') return 'Email + Password'
+    return method
   }
 
   return (
-    <header className="topbar">
+    <header className="topbar" ref={topbarRef}>
+      {/* Search bar on the left */}
       <div className="topbar-left">
-        <div className="breadcrumb">
-          Workspace <span>/</span> {pageTitle}
-        </div>
-
-        <form
-          className="dashboard-search"
-          role="search"
-          onSubmit={handleSearchSubmit}
-        >
-          <span className="search-icon" aria-hidden="true">
-            ⌕
-          </span>
+        <div className="topbar-search">
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            className="topbar-search-icon"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <path d="m16 16 4 4" />
+          </svg>
 
           <input
             type="search"
+            placeholder="Search incidents by ID, title, service..."
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search incidents or ask about a root cause..."
-            aria-label="Search incidents or ask about a root cause"
+            onKeyDown={handleSearch}
+            aria-label="Search incidents and services"
           />
 
-          <kbd>Enter</kbd>
-        </form>
+          {searchQuery && (
+            <button
+              type="button"
+              className="topbar-search-clear"
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+            >
+              ×
+            </button>
+          )}
+        </div>
       </div>
 
+      {/* Actions on the right */}
       <div className="topbar-right">
         <span className="demo-badge">DEMO DATA</span>
 
         <button
-          className="icon-button theme-toggle"
           type="button"
+          className="topbar-icon-button"
           onClick={onToggleTheme}
-          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
-          title="Switch theme"
+          aria-label="Toggle theme"
+          title="Toggle theme"
         >
-          {theme === 'dark' ? '☀' : '☾'}
+          {theme === 'dark' ? (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z" />
+            </svg>
+          )}
         </button>
 
-        <div className="popover-container">
+        <div className="notification-wrapper">
           <button
-            className="icon-button notification-button"
             type="button"
-            onClick={() => {
-              setNotificationsOpen((current) => !current)
-              setProfileOpen(false)
-            }}
-            aria-label={`Notifications, ${unreadCount} unread`}
+            className="topbar-icon-button notification-trigger"
+            onClick={toggleNotifications}
+            aria-label="Notifications"
             aria-expanded={notificationsOpen}
+            aria-haspopup="true"
             title="Notifications"
           >
-            ♧
-            {unreadCount > 0 && (
-              <span className="notification-count">
-                {unreadCount}
-              </span>
-            )}
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+              <path d="M10 21h4" />
+            </svg>
           </button>
 
           {notificationsOpen && (
-            <section className="popover-panel notification-panel">
-              <div className="popover-heading">
+            <div className="notification-menu">
+              <div className="notification-menu-heading">
                 <div>
-                  <h3>Notifications</h3>
-                  <p>{unreadCount} unread notifications</p>
+                  <strong>Notifications</strong>
+                  <small>Your incident activity</small>
                 </div>
-
-                <button
-                  className="text-button"
-                  type="button"
-                  onClick={markAllAsRead}
-                >
-                  Mark all read
-                </button>
+                <span className="notification-status-dot" />
               </div>
 
-              <div className="notification-list">
-                {notifications.map((notification) => (
-                  <button
-                    className={`notification-item ${
-                      notification.read ? 'is-read' : 'is-unread'
-                    }`}
-                    key={notification.id}
-                    type="button"
-                    onClick={() =>
-                      setNotifications((current) =>
-                        current.map((item) =>
-                          item.id === notification.id
-                            ? { ...item, read: true }
-                            : item,
-                        ),
-                      )
-                    }
-                  >
-                    <span className="notification-dot" />
+              <div className="notification-item">
+                <span className="notification-empty-icon">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+                    <path d="M10 21h4" />
+                  </svg>
+                </span>
 
-                    <span className="notification-content">
-                      <strong>{notification.title}</strong>
-                      <small>{notification.detail}</small>
-                      <small>{notification.time}</small>
-                    </span>
-                  </button>
-                ))}
+                <div>
+                  <strong>You're all caught up</strong>
+                  <small>No new notifications at the moment.</small>
+                </div>
               </div>
-
-              <p className="popover-footnote">
-                Sample notifications · Database integration pending
-              </p>
-            </section>
+            </div>
           )}
         </div>
 
-        <div className="popover-container">
+        <div className="profile-wrapper">
           <button
-            className="profile-trigger"
             type="button"
-            onClick={() => {
-              setProfileOpen((current) => !current)
-              setNotificationsOpen(false)
-            }}
+            className="profile-trigger"
+            onClick={toggleProfile}
             aria-expanded={profileOpen}
-            title="Profile and settings"
+            aria-haspopup="true"
           >
-            <span className="profile-avatar">IO</span>
-            <span className="profile-trigger-label">Admin</span>
-            <span aria-hidden="true">⌄</span>
+            <span className="profile-avatar">{initials}</span>
+
+            <span className="profile-trigger-details">
+              <strong>{displayName}</strong>
+              <small>{user?.email || 'InferOps Account'}</small>
+            </span>
+
+            <svg
+              className={`profile-chevron ${profileOpen ? 'is-open' : ''}`}
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="m7 10 5 5 5-5" />
+            </svg>
           </button>
 
           {profileOpen && (
-            <div className="popover-panel settings-panel">
-              <div className="popover-heading">
-                <div>
-                  <h3>Workspace settings</h3>
-                  <p>InferOps preferences</p>
+            <div className="profile-menu">
+              <div className="profile-menu-identity">
+                <div className="profile-menu-avatar">{initials}</div>
+
+                <div className="profile-menu-user">
+                  <strong>{user?.full_name || 'User Profile'}</strong>
+                  <small>{user?.email || 'Loading email...'}</small>
+                  <span className="profile-account-status">
+                    <span />
+                    Account active
+                  </span>
                 </div>
               </div>
 
-              <button
-                className="settings-menu-item"
-                type="button"
-                onClick={() => {
-                  setProfileOpen(false)
-                  navigate('/settings')
-                }}
-              >
-                ⚙ <span>Open Settings</span>
-              </button>
+              <div className="profile-menu-details">
+                <div>
+                  <small>Phone number</small>
+                  <p>{user?.phone_number || 'Not connected'}</p>
+                </div>
 
-              <div className="settings-footer">
-                Local development preview
+                <div>
+                  <small>Email address</small>
+                  <p>{user?.email || 'Not available'}</p>
+                </div>
+
+                <div>
+                  <small>Account created</small>
+                  <p>
+                    {user?.created_at
+                      ? new Date(user.created_at).toLocaleDateString()
+                      : 'Not available'}
+                  </p>
+                </div>
+
+                <div>
+                  <small>Sign-in methods</small>
+                  <p>
+                    {connectedMethods.length
+                      ? connectedMethods.map(formatMethod).join(', ')
+                      : 'Not available'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="google-link-section">
+                <div className="google-link-heading">
+                  <strong>Google account</strong>
+                  <span className={googleConnected ? 'is-connected' : ''}>
+                    {googleConnected ? 'Connected' : 'Not connected'}
+                  </span>
+                </div>
+
+                {googleConnected ? (
+                  <p className="google-connected-message">
+                    Your Google account is linked to InferOps.
+                  </p>
+                ) : (
+                  <>
+                    <div
+                      className="google-link-button"
+                      ref={googleButtonRef}
+                    />
+
+                    {googleError && (
+                      <p className="login-error">{googleError}</p>
+                    )}
+
+                    {googleMessage && (
+                      <p className="login-success">{googleMessage}</p>
+                    )}
+                  </>
+                )}
+              </div>
+
+              <div className="profile-menu-actions">
+                <button
+                  type="button"
+                  className="profile-menu-item"
+                  onClick={openSettings}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.6a8 8 0 0 1-1.7 1l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.7-1l-1.7.6-1.4-2.4 1.4-1.1a8 8 0 0 1 0-2l-1.4-1.1 1.4-2.4 1.7.6a8 8 0 0 1 1.7-1l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.7 1l1.7-.6 1.4 2.4-1.4 1.1a8 8 0 0 1 0 2Z" />
+                  </svg>
+                  Workspace settings
+                </button>
+
+                <button
+                  type="button"
+                  className="profile-menu-item logout-button"
+                  onClick={handleLogout}
+                  disabled={loggingOut}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M10 17l5-5-5-5" />
+                    <path d="M15 12H3" />
+                    <path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6" />
+                  </svg>
+                  {loggingOut ? 'Signing out...' : 'Sign out'}
+                </button>
               </div>
             </div>
           )}

@@ -1,3 +1,6 @@
+
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -6,4 +9,8 @@ class IncidentCreate(BaseModel):
     type: str
     severity: str
     service_name: str = "unknown"
-    description :str | None = None 
+    description: str | None = None
+
+
+class IncidentStatusUpdate(BaseModel):
+    status: Literal["OPEN", "INVESTIGATING", "RESOLVED"]

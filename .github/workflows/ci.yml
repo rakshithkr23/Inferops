@@ -5,9 +5,12 @@ on:
   push:
     branches:
       - main
+      - ci-cd-pipeline
+      - phase-10-submission-fixes
   pull_request:
     branches:
       - main
+      - ci-cd-pipeline
 
 concurrency:
   group: ci-${{ github.ref }}
