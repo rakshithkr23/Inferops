@@ -10,18 +10,28 @@ function Topbar({ theme, onToggleTheme }) {
   const topbarRef = useRef(null)
   const googleButtonRef = useRef(null)
 
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [profileOpen, setProfileOpen] = useState(false)
+  const [openMenu, setOpenMenu] = useState({
+    type: null,
+    path: location.pathname,
+  })
+
+  const profileOpen =
+    openMenu.type === 'profile' && openMenu.path === location.pathname
+
+  const notificationsOpen =
+    openMenu.type === 'notifications' && openMenu.path === location.pathname
+
   const [searchQuery, setSearchQuery] = useState('')
+
   function handleSearch(event) {
-     if (event.key !== 'Enter') return
+    if (event.key !== 'Enter') return
 
-  const query = searchQuery.trim()
+    const query = searchQuery.trim()
 
-  if (!query) return
+    if (!query) return
 
-     navigate(`/incidents?q=${encodeURIComponent(query)}`)
- }
+    navigate(`/incidents?q=${encodeURIComponent(query)}`)
+  }
 
   const [user, setUser] = useState(null)
   const [loggingOut, setLoggingOut] = useState(false)
@@ -42,25 +52,45 @@ function Topbar({ theme, onToggleTheme }) {
   }
 
   useEffect(() => {
-    loadUser()
+    let active = true
+
+    apiFetch('/auth/me')
+      .then(async (response) => {
+        if (!response.ok) return null
+        return response.json()
+      })
+      .then((data) => {
+        if (active && data) {
+          setUser(data.user)
+        }
+      })
+      .catch((error) => {
+        console.error('Profile loading failed:', error)
+      })
+
+    return () => {
+      active = false
+    }
   }, [])
 
   // Close menus when clicking outside or pressing Escape.
   useEffect(() => {
+    function closeMenus() {
+      setOpenMenu({ type: null, path: '' })
+    }
+
     function handleOutsideClick(event) {
       if (
         topbarRef.current &&
         !topbarRef.current.contains(event.target)
       ) {
-        setProfileOpen(false)
-        setNotificationsOpen(false)
+        closeMenus()
       }
     }
 
     function handleEscape(event) {
       if (event.key === 'Escape') {
-        setProfileOpen(false)
-        setNotificationsOpen(false)
+        closeMenus()
       }
     }
 
@@ -74,12 +104,6 @@ function Topbar({ theme, onToggleTheme }) {
       document.removeEventListener('keydown', handleEscape)
     }
   }, [])
-
-  // Close open menus after route navigation.
-  useEffect(() => {
-    setProfileOpen(false)
-    setNotificationsOpen(false)
-  }, [location.pathname])
 
   // Initialize Google account linking when the profile menu is open.
   useEffect(() => {
@@ -200,18 +224,30 @@ function Topbar({ theme, onToggleTheme }) {
   }
 
   function openSettings() {
-    setProfileOpen(false)
+    setOpenMenu({ type: null, path: '' })
     navigate('/settings')
   }
 
   function toggleNotifications() {
-    setNotificationsOpen((open) => !open)
-    setProfileOpen(false)
+    setOpenMenu((current) => ({
+      type:
+        current.type === 'notifications' &&
+        current.path === location.pathname
+          ? null
+          : 'notifications',
+      path: location.pathname,
+    }))
   }
 
   function toggleProfile() {
-    setProfileOpen((open) => !open)
-    setNotificationsOpen(false)
+    setOpenMenu((current) => ({
+      type:
+        current.type === 'profile' &&
+        current.path === location.pathname
+          ? null
+          : 'profile',
+      path: location.pathname,
+    }))
   }
 
   const displayName = user?.full_name || 'InferOps User'

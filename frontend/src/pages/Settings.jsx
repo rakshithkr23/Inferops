@@ -143,7 +143,13 @@ function Settings() {
   }, [])
 
   useEffect(() => {
-    checkSystemStatus()
+    const timeoutId = setTimeout(() => {
+      checkSystemStatus()
+    }, 0)
+
+    return () => {
+      clearTimeout(timeoutId)
+    }
   }, [checkSystemStatus])
 
   function updateSetting(key, value) {

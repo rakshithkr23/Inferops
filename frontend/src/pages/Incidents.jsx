@@ -169,7 +169,7 @@ function Incidents() {
 ])
 
 useEffect(() => {
-  function handleSettingsUpdate(event) {
+  function handleSettingsUpdate() {
     setPreferences(readIncidentPreferences())
   }
 
