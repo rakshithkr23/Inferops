@@ -10,10 +10,12 @@ RUN_RCA="${RUN_RCA:-false}"
 # The application protects operational API routes with an authenticated session.
 # Create a uniquely named CI-only account for this run and reuse its cookie.
 CI_RUN_ID="${GITHUB_RUN_ID:-$(date +%s)}"
-CI_SUFFIX=$((CI_RUN_ID % 1000000000))
+CI_RUN_ATTEMPT="${GITHUB_RUN_ATTEMPT:-1}"
+CI_UNIQUE_ID=$((CI_RUN_ID + CI_RUN_ATTEMPT * 100000000))
+CI_SUFFIX=$((CI_UNIQUE_ID % 1000000000))
 CI_PHONE="9$(printf '%09d' "$CI_SUFFIX")"
-CI_EMAIL="ci${CI_RUN_ID}@inferops.test"
-CI_PASSWORD="CI-Smoke-${CI_RUN_ID}-A1!"
+CI_EMAIL="ci${CI_UNIQUE_ID}@inferops.test"
+CI_PASSWORD="CI-Smoke-${CI_UNIQUE_ID}-A1!"
 COOKIE_JAR="$(mktemp)"
 trap 'rm -f "$COOKIE_JAR"' EXIT
 
