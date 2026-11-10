@@ -1,721 +1,209 @@
 # InferOps
 
-## AI-Driven DevOps Incident Detection and Root Cause Analysis System
+**AI-Driven DevOps Incident Detection and Root Cause Analysis**
 
-InferOps is an AI-driven DevOps incident detection and Root Cause Analysis (RCA) system designed to help DevOps engineers identify application and infrastructure incidents, collect relevant operational evidence, analyze historical incidents, and generate an explainable root-cause analysis.
+InferOps is a web application for detecting selected application and infrastructure incidents and helping engineers investigate them. It combines rule-based detection with operational evidence and historical incident context to produce an AI-assisted root cause analysis (RCA).
 
-The system combines **DevOps automation, Kubernetes, observability, rule-based incident detection, Retrieval-Augmented Generation (RAG), vector search, LangGraph, and Gemini** into a single workflow.
+The aim is to bring incident information and investigation support into one place. Engineers can review detected incidents, examine available logs and metrics, run an RCA, and assess the suggested explanation before taking action.
 
----
+## Overview
 
-## 1. Project Overview
+InferOps follows two main parts of an incident investigation:
 
-Modern applications deployed using Docker and Kubernetes can experience different types of failures such as application crashes, HTTP errors, database connectivity problems, resource exhaustion, configuration errors, and Kubernetes pod failures.
+1. **Detection:** application and infrastructure data is checked against configured rules. When a condition matches, the system records an incident.
+2. **Analysis:** the RCA workflow uses incident details, available evidence and related historical incidents to prepare context for Gemini. The result is returned in a structured format for review.
 
-Traditionally, troubleshooting these incidents requires engineers to manually inspect:
+Detection is rule-based; the language model is used for analysis, not as the sole mechanism for deciding whether an incident exists.
 
-* Application logs
-* System metrics
-* Kubernetes status
-* Deployment information
-* Database errors
-* Previous incident records
+## Main capabilities
 
-This manual investigation can increase the time required to identify the root cause and resolve an incident.
+- **Incident monitoring and detection** for configured conditions such as HTTP 500 errors, high error rates, CPU and memory thresholds, and unhealthy container or Kubernetes workloads.
+- **Incident records** stored in PostgreSQL for review and historical reference.
+- **Logs and metrics views** to help examine operational behaviour.
+- **Historical incident retrieval** using text embeddings and pgvector similarity search.
+- **AI-assisted root cause analysis** coordinated through a LangGraph workflow and powered by Google Gemini.
+- **Structured RCA results** containing a probable root cause, evidence, recommended actions, confidence and limitations.
+- **Feedback** so an engineer can indicate whether an RCA result was useful.
+- **User authentication** with phone or email and password, plus Google sign-in.
 
-**InferOps** aims to automate this process.
+RCA results are suggestions based on the information available to the system. They should be checked against the actual application and infrastructure evidence before remediation.
 
-It first detects incidents using predefined rules and operational data. It then collects logs, metrics, and Kubernetes status as evidence. Historical incidents are retrieved using RAG and pgvector, and a LangGraph-based workflow coordinates the RCA process. Gemini is used to analyze the collected evidence and generate a structured RCA result.
+## Architecture
 
-The result is presented through a React dashboard where the DevOps engineer can review the analysis and provide **👍 / 👎 feedback**.
-
----
-
-## 2. Problem Statement
-
-Applications running in containerized and Kubernetes environments can fail due to:
-
-* Application errors
-* HTTP 500 errors
-* Database connection failures
-* High CPU or memory usage
-* Container crashes
-* Kubernetes `CrashLoopBackOff`
-* Deployment failures
-* Configuration problems
-* Resource exhaustion
-
-Identifying the root cause often requires manual investigation across multiple sources.
-
-Therefore, there is a need for a system that can automatically detect incidents, collect relevant evidence, use historical incident knowledge, and assist engineers in determining the probable root cause.
-
----
-
-## 3. Proposed Solution
-
-InferOps provides an automated incident analysis pipeline.
-
-The system:
-
-1. Receives application and infrastructure information.
-2. Monitors logs, metrics, and Kubernetes status.
-3. Detects incidents using predefined rules.
-4. Stores incident information in PostgreSQL.
-5. Retrieves similar historical incidents.
-6. Uses pgvector for vector similarity search.
-7. Builds relevant context using RAG.
-8. Uses LangGraph to orchestrate the RCA workflow.
-9. Uses Gemini to analyze the collected evidence.
-10. Generates a structured RCA result.
-11. Displays the result through a React dashboard.
-12. Allows the DevOps engineer to provide 👍 / 👎 feedback.
-13. Stores feedback for future analysis.
-
----
-
-# 4. System Architecture
+The application is organized around the following flow:
 
 ```text
-                 DEVELOPER
-                     │
-                     │ git push
-                     ▼
-                  GITHUB
-                     │
-                     ▼
-              ┌──────────────┐
-              │ GitHub       │
-              │ Actions      │
-              │ CI/CD        │
-              └──────┬───────┘
-                     │
-              ┌──────┴───────┐
-              ▼              ▼
-            Tests          Docker
-                             │
-                             ▼
-                       Docker Image
-                             │
-                             ▼
-                       Kubernetes
-                             │
-                    ┌────────┴────────┐
-                    ▼                 ▼
-                 FastAPI          PostgreSQL
-                    │
-          ┌─────────┼──────────┐
-          ▼         ▼          ▼
-        Logs      Metrics    K8s Status
-          │         │          │
-          └─────────┼──────────┘
-                    ▼
-             Incident Engine
-                    │
-                    ▼
-                PostgreSQL
-                    │
-                    ▼
-             Historical Data
-                    │
-                    ▼
-               RAG + pgvector
-                    │
-                    ▼
-                LangGraph
-                    │
-                    ▼
-                 Gemini
-                    │
-                    ▼
-              RCA Result
-                    │
-                    ▼
-                 FastAPI
-                    │
-                    ▼
-              React Dashboard
-                    │
-             ┌──────┴──────┐
-             ▼             ▼
-            👍             👎
-             │             │
-             └──────┬──────┘
-                    ▼
-                PostgreSQL
-                    │
-                    ▼
-             DevOps Engineer
+Application and infrastructure data
+                 |
+                 v
+       Monitoring and rule checks
+                 |
+                 v
+           Incident record
+                 |
+                 v
+       PostgreSQL incident history
+                 |
+                 v
+     Embeddings and pgvector search
+                 |
+                 v
+          RAG context building
+                 |
+                 v
+       LangGraph RCA workflow
+                 |
+                 v
+            Google Gemini
+                 |
+                 v
+       Structured RCA response
+                 |
+                 v
+          React dashboard
+                 |
+                 v
+          Engineer feedback
 ```
 
----
+GitHub Actions is used for automated checks and Docker image builds. Docker Compose is the local application environment. Kubernetes manifests are included in the repository for deployment configuration; a running Kubernetes cluster is not required for the Docker Compose setup.
 
-# 5. Project Workflow
+## Technology stack
 
-The overall InferOps workflow is divided into several stages.
+| Area | Technology |
+| --- | --- |
+| Frontend | React, Vite |
+| Backend API | Python, FastAPI |
+| Database | PostgreSQL |
+| Vector search | pgvector |
+| Embeddings | sentence-transformers/all-MiniLM-L6-v2 |
+| RCA orchestration | LangGraph |
+| Generative AI | Google Gemini |
+| Containers | Docker, Docker Compose |
+| Deployment configuration | Kubernetes, Kustomize |
+| CI/CD | GitHub Actions |
+| Backend quality checks | Pytest, Ruff |
+| Frontend quality checks | ESLint, Vite build |
 
-### Stage 1 — Development and CI/CD
+The sentence-transformer model is pretrained and is used to generate 384-dimensional embeddings for semantic retrieval. It is not trained from scratch as part of InferOps.
 
-```text
-Developer
-    ↓
-Git Push
-    ↓
-GitHub
-    ↓
-GitHub Actions
-    ↓
-Automated Tests
-    ↓
-Docker Build
+## Application sections
+
+The React dashboard provides the following areas:
+
+- **Home:** overview of the system.
+- **Incidents:** review recorded incidents.
+- **Root Cause Analysis:** submit incident details and review the RCA response.
+- **Services:** view service information.
+- **Logs & Metrics:** inspect available operational data.
+- **Feedback:** submit feedback on the system.
+- **Settings:** manage application preferences and account-related settings.
+
+Available data and actions depend on the configured services and the current state of the application.
+
+## Getting started
+
+### Prerequisites
+
+- Git
+- Docker Desktop with Docker Compose
+- A Google Gemini API key for RCA analysis
+
+### Run with Docker Compose
+
+1. Clone the repository and enter the project directory:
+
+   ```bash
+   git clone https://github.com/rakshithkr23/Inferops.git
+   cd Inferops
+   ```
+
+2. Create a local environment file:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. Edit `.env` and set your local PostgreSQL password and Gemini API key. Set a strong, private `AUTH_SESSION_SECRET` as well. Do not commit this file or share secret values.
+
+4. Build and start the services:
+
+   ```bash
+   docker compose up --build -d
+   ```
+
+5. Open the application:
+
+   | Service | Address |
+   | --- | --- |
+   | React dashboard | http://localhost:3002 |
+   | FastAPI API | http://localhost:8002 |
+   | Swagger documentation | http://localhost:8002/docs |
+   | Backend health check | http://localhost:8002/health |
+
+The first startup may take longer while dependencies and the embedding model are prepared. RCA analysis requires a valid Gemini API key, network access and available API quota.
+
+For environment configuration, operational commands and troubleshooting, see [RUNNING.md](RUNNING.md).
+
+## Configuration and security
+
+- Keep API keys, database passwords and session secrets in the local `.env` file.
+- Do not commit `.env` or paste secret values into issues, logs or chat.
+- Use a unique, strong `AUTH_SESSION_SECRET` for local deployment.
+- The example credentials are for local development only; choose your own values.
+- If application ports or frontend API settings are changed, keep the related environment values consistent and rebuild the frontend when required.
+
+## Testing and code quality
+
+The repository includes automated checks for the backend and frontend. The backend uses Pytest for tests and Ruff for linting. The frontend uses ESLint and a Vite production build. GitHub Actions runs the configured CI workflow for repository events.
+
+Run the checks from their respective project directories:
+
+```bash
+# Backend (from the backend environment)
+ruff check .
+
+# Frontend (from the frontend directory)
+npm install
+npm run lint
+npm run build
 ```
 
-### Stage 2 — Deployment
+The test suite and CI results can change as the code changes; refer to the latest GitHub Actions run for the current status.
+
+## Repository layout
 
 ```text
-Docker Image
-     ↓
-Kubernetes
-     ↓
-FastAPI Application
-```
-
-### Stage 3 — Observability
-
-InferOps collects operational information from:
-
-```text
-Application
-   ├── Logs
-   ├── Metrics
-   └── Kubernetes Status
-```
-
-### Stage 4 — Incident Detection
-
-```text
-Logs
-Metrics
-K8s Status
-     ↓
-Incident Engine
-     ↓
-Incident Detected
-```
-
-The initial incident detection mechanism uses predefined rules rather than relying entirely on an LLM.
-
-Examples include:
-
-* HTTP 500 error rate exceeding a threshold
-* High CPU usage
-* Database connection errors
-* Kubernetes `CrashLoopBackOff`
-* Failed pods
-* Application failures
-
-### Stage 5 — Historical Incident Retrieval
-
-```text
-Current Incident
-       ↓
-PostgreSQL
-       ↓
-Historical Incidents
-       ↓
-pgvector
-       ↓
-Similar Incidents
-```
-
-### Stage 6 — AI-Based RCA
-
-```text
-Incident
-   +
-Logs
-   +
-Metrics
-   +
-K8s Status
-   +
-Historical Context
-       ↓
-      RAG
-       ↓
-   LangGraph
-       ↓
-     Gemini
-       ↓
-   RCA Result
-```
-
-### Stage 7 — Dashboard and Feedback
-
-```text
-RCA Result
-     ↓
-React Dashboard
-     ↓
-DevOps Engineer
-     ↓
-👍 / 👎
-     ↓
-PostgreSQL
-```
-
----
-
-# 6. Key Features
-
-## Incident Detection
-
-Automatically identifies predefined operational incidents using application and infrastructure information.
-
-## Log Analysis
-
-Uses application logs as evidence during incident investigation.
-
-## Metrics Analysis
-
-Uses operational metrics such as:
-
-* CPU usage
-* Memory usage
-* Request count
-* HTTP error rate
-* Response time
-
-## Kubernetes Monitoring
-
-Examines Kubernetes information such as:
-
-* Pod status
-* Restart count
-* Deployment status
-* Failed pods
-* `CrashLoopBackOff`
-
-## Historical Incident Analysis
-
-Stores previous incidents in PostgreSQL so that similar incidents can be retrieved during future RCA.
-
-## RAG
-
-Retrieves relevant historical information and provides it as context for the RCA process.
-
-## Vector Search with pgvector
-
-Uses vector similarity search to identify historically similar incidents.
-
-## LangGraph RCA Workflow
-
-Coordinates multiple RCA processing stages such as evidence collection, historical retrieval, context construction, and AI analysis.
-
-## Gemini-Based RCA
-
-Gemini analyzes the collected evidence and generates a probable root cause and recommended action.
-
-## React Dashboard
-
-Provides a user interface for viewing:
-
-* Active incidents
-* Incident details
-* RCA results
-* Evidence
-* Root cause
-* Recommended actions
-* RCA feedback
-
-## RCA Feedback
-
-The DevOps engineer can provide:
-
-```text
-👍 Helpful
-👎 Not Helpful
-```
-
-Feedback is stored in PostgreSQL for later analysis.
-
----
-
-# 7. Technology Stack
-
-| Category                | Technology                         |
-| ----------------------- | ---------------------------------- |
-| Programming Language    | Python                             |
-| Backend                 | FastAPI                            |
-| Database                | PostgreSQL                         |
-| ORM                     | SQLAlchemy                         |
-| Frontend                | React                              |
-| Containerization        | Docker                             |
-| Container Orchestration | Kubernetes                         |
-| CI/CD                   | GitHub Actions                     |
-| Version Control         | Git + GitHub                       |
-| Observability           | Logs + Metrics + Kubernetes Status |
-| Vector Database         | PostgreSQL + pgvector              |
-| RAG                     | Retrieval-Augmented Generation     |
-| AI Workflow             | LangGraph                          |
-| LLM                     | Gemini                             |
-| API Testing             | Swagger / OpenAPI                  |
-| Development Environment | WSL2 + Ubuntu + VS Code            |
-
----
-
-# 8. Project Modules
-
-InferOps is divided into the following major modules:
-
-```text
-InferOps
-│
-├── Development & Version Control
-│   ├── Git
-│   └── GitHub
-│
-├── CI/CD
-│   └── GitHub Actions
-│
-├── Application
-│   └── FastAPI
-│
-├── Containerization
-│   └── Docker
-│
-├── Infrastructure
-│   └── Kubernetes
-│
-├── Observability
-│   ├── Logs
-│   ├── Metrics
-│   └── Kubernetes Status
-│
-├── Incident Detection
-│   └── Incident Engine
-│
-├── Data Storage
-│   └── PostgreSQL
-│
-├── Historical Knowledge
-│   └── Historical Incidents
-│
-├── AI/Retrieval
-│   ├── pgvector
-│   ├── RAG
-│   ├── LangGraph
-│   └── Gemini
-│
-├── Frontend
-│   └── React Dashboard
-│
-└── Feedback
-    ├── 👍 Positive
-    └── 👎 Negative
-```
-
----
-
-# 9. Database Concept
-
-PostgreSQL is used as the main persistent data store.
-
-The database will contain information related to:
-
-```text
-Services
-    ↓
-Incidents
-    ↓
-Logs
-    ↓
-RCA Results
-    ↓
-Feedback
-```
-
-Historical incident information can also be represented as vector data through **pgvector** to support similarity-based retrieval.
-
----
-
-# 10. RCA Output
-
-InferOps aims to provide a structured RCA result containing information such as:
-
-```text
-Incident:
-Database Connection Failure
-
-Severity:
-High
-
-Root Cause:
-Probable database connection pool exhaustion
-
-Evidence:
-- Database connection timeout errors
-- Increased connection usage
-- Similar historical incident
-
-Historical Context:
-Similar incident found
-
-Recommended Action:
-Investigate connection pool configuration and
-long-running database connections.
-
-Confidence:
-High
-```
-
-The exact response schema will be finalized during implementation.
-
----
-
-# 11. Feedback Mechanism
-
-After viewing an RCA result, the DevOps engineer can provide feedback:
-
-```text
-Was this RCA useful?
-
-       👍        👎
-```
-
-The feedback is sent to the FastAPI backend and stored in PostgreSQL.
-
-Example:
-
-```text
-feedback
---------------------------------
-id
-incident_id
-rca_id
-feedback_type
-created_at
-```
-
-Possible values:
-
-```text
-positive
-negative
-```
-
-The feedback represents **user acceptance/usefulness of the RCA**, and should not automatically be interpreted as ground-truth AI accuracy.
-
----
-
-# 12. Project Development Phases
-
-The project will be developed in the following phases:
-
-| Phase    | Module                                |
-| -------- | ------------------------------------- |
-| Phase 1  | Project Planning & Requirements       |
-| Phase 2  | Development Environment & Repository  |
-| Phase 3  | FastAPI Backend + PostgreSQL          |
-| Phase 4  | Demo Application / Failure Generation |
-| Phase 5  | Dockerization                         |
-| Phase 6  | GitHub Actions CI/CD                  |
-| Phase 7  | Kubernetes Deployment                 |
-| Phase 8  | Logs + Metrics + Kubernetes Status    |
-| Phase 9  | Incident Detection Engine             |
-| Phase 10 | Incident & Historical Data            |
-| Phase 11 | RAG + pgvector                        |
-| Phase 12 | LangGraph RCA Workflow                |
-| Phase 13 | Gemini Integration                    |
-| Phase 14 | RCA API                               |
-| Phase 15 | React Dashboard                       |
-| Phase 16 | RCA Feedback System                   |
-| Phase 17 | Feedback Analytics                    |
-| Phase 18 | End-to-End Integration                |
-| Phase 19 | Testing & Failure Injection           |
-| Phase 20 | Security & Reliability                |
-| Phase 21 | Documentation & Final Demonstration   |
-
----
-
-# 13. Example Failure Scenarios
-
-InferOps will be tested using controlled failure scenarios.
-
-### HTTP 500 Error
-
-```text
-Application
-    ↓
-HTTP 500
-    ↓
-Log
-    ↓
-Incident Engine
-    ↓
-RCA
-```
-
-### Kubernetes CrashLoopBackOff
-
-```text
-Application
-    ↓
-Container Failure
-    ↓
-Kubernetes Pod
-    ↓
-CrashLoopBackOff
-    ↓
-Incident Engine
-    ↓
-RCA
-```
-
-### High CPU
-
-```text
-Application
-    ↓
-High CPU
-    ↓
-Metrics
-    ↓
-Incident Engine
-    ↓
-RCA
-```
-
-### Database Connection Failure
-
-```text
-Application
-    ↓
-Database Error
-    ↓
-Logs
-    ↓
-Incident Engine
-    ↓
-Historical Search
-    ↓
-RAG
-    ↓
-Gemini
-    ↓
-RCA
-```
-
----
-
-# 14. Expected Outcome
-
-The final InferOps system is expected to provide a complete workflow for:
-
-```text
-Incident Detection
-        ↓
-Evidence Collection
-        ↓
-Historical Incident Retrieval
-        ↓
-AI-Assisted Root Cause Analysis
-        ↓
-RCA Recommendation
-        ↓
-Dashboard Visualization
-        ↓
-Engineer Feedback
-```
-
-The project demonstrates the integration of **DevOps, containerization, Kubernetes, observability, backend development, databases, vector search, RAG, AI workflow orchestration, LLM-based analysis, and frontend development** in one practical system.
-
----
-
-# 15. Future Scope
-
-Possible future improvements include:
-
-* More advanced anomaly detection
-* Additional observability sources
-* Distributed tracing
-* Automated remediation
-* More sophisticated feedback analysis
-* RCA quality evaluation using labeled incidents
-* Support for additional LLM providers
-* Multi-service dependency analysis
-* Alert integrations
-* Production-scale Kubernetes deployment
-* Continuous improvement using validated incident feedback
-
----
-
-# 16. Project Status
-
-**Current Status:** Under Development
-
-```text
-Phase 1  — Planning                 ✅
-Phase 2  — Environment              🟢
-Phase 3  — Backend                  🔜
-Phase 4  — Demo Application         🔜
-Phase 5  — Docker                   🔜
-Phase 6  — CI/CD                    🔜
-Phase 7  — Kubernetes               🔜
-Phase 8  — Observability            🔜
-Phase 9  — Incident Engine          🔜
-Phase 10 — Historical Data          🔜
-Phase 11 — RAG + pgvector           🔜
-Phase 12 — LangGraph                🔜
-Phase 13 — Gemini                   🔜
-Phase 14 — RCA API                 🔜
-Phase 15 — React Dashboard          🔜
-Phase 16 — Feedback                 🔜
-Phase 17 — Feedback Analytics       🔜
-Phase 18 — Integration              🔜
-Phase 19 — Testing                  🔜
-Phase 20 — Security                 🔜
-Phase 21 — Documentation            🔜
-```
-
----
-
-# 17. Repository Structure
-
-The project will follow a modular structure:
-
-```text
-inferops/
-│
-├── backend/
-│   ├── app/
-│   ├── requirements.txt
-│   └── Dockerfile
-│
-├── frontend/
-│
-├── k8s/
-│   ├── namespace.yaml
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   ├── configmap.yaml
-│   └── secret.yaml
-│
-├── docker/
-│
-├── tests/
-│
-├── docs/
-│
-├── .github/
-│   └── workflows/
-│
-├── .gitignore
-│
+Inferops/
+├── backend/             # FastAPI application and backend logic
+├── frontend/            # React dashboard
+├── k8s/                 # Kubernetes deployment configuration
+├── scripts/             # Project scripts
+├── tests/               # Automated tests
+├── docs/                # Project documentation
+├── .github/workflows/   # GitHub Actions workflows
+├── docker-compose.yml   # Local multi-container environment
+├── .env.example         # Example environment variables
+├── RUNNING.md           # Local setup and operating guide
 └── README.md
 ```
 
----
+## Deployment notes
 
-# 18. License
+Docker Compose is the documented way to run InferOps locally. Kubernetes configuration is maintained separately under `k8s/` for deployment use. The presence of these manifests should not be taken as confirmation that a Kubernetes cluster is currently running or that a live Kubernetes deployment has been validated.
 
-This project is developed as an academic MCA project for educational and demonstration purposes.
+## Limitations
+
+- Incident detection is based on configured rules and available monitoring data.
+- RCA quality depends on the completeness and accuracy of the incident description, logs, metrics and historical records.
+- Gemini analysis requires an available API key, network connectivity and API quota.
+- AI-generated root causes and recommendations are not guaranteed to be correct and require engineering review.
+- Kubernetes runtime behaviour must be validated in a configured cluster; it is separate from local Docker Compose operation.
+
+## Future improvements
+
+Potential areas for further work include additional monitoring sources, distributed tracing, more comprehensive incident datasets, evaluation against labelled root causes, alert integrations and carefully controlled remediation workflows.
+
+## License
+
+No open-source license has been specified for this repository. Contact the project owner before reusing or distributing the code.
