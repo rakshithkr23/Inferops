@@ -14,7 +14,8 @@ CI_RUN_ATTEMPT="${GITHUB_RUN_ATTEMPT:-1}"
 CI_UNIQUE_ID=$((CI_RUN_ID + CI_RUN_ATTEMPT * 100000000))
 CI_SUFFIX=$((CI_UNIQUE_ID % 1000000000))
 CI_PHONE="9$(printf '%09d' "$CI_SUFFIX")"
-CI_EMAIL="ci${CI_UNIQUE_ID}@inferops.test"
+# Use example.com: reserved domains such as .test are rejected by email-validator.
+CI_EMAIL="ci${CI_UNIQUE_ID}@example.com"
 CI_PASSWORD="CI-Smoke-${CI_UNIQUE_ID}-A1!"
 COOKIE_JAR="$(mktemp)"
 REGISTER_RESPONSE="$(mktemp)"
