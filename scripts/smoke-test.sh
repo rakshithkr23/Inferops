@@ -17,7 +17,8 @@ CI_PHONE="9$(printf '%09d' "$CI_SUFFIX")"
 CI_EMAIL="ci${CI_UNIQUE_ID}@inferops.test"
 CI_PASSWORD="CI-Smoke-${CI_UNIQUE_ID}-A1!"
 COOKIE_JAR="$(mktemp)"
-trap 'rm -f "$COOKIE_JAR"' EXIT
+REGISTER_RESPONSE="$(mktemp)"
+trap 'rm -f "$COOKIE_JAR" "$REGISTER_RESPONSE"' EXIT
 
 echo "Waiting for $BASE_URL/health ..."
 for i in $(seq 1 60); do
@@ -40,10 +41,21 @@ register_payload=$(printf \
   '{"full_name":"CI Smoke Test","phone_number":"%s","email":"%s","password":"%s","confirm_password":"%s"}' \
   "$CI_PHONE" "$CI_EMAIL" "$CI_PASSWORD" "$CI_PASSWORD")
 
-if ! curl -fsS -X POST "$BASE_URL/auth/register" \
+# Keep the response body so FastAPI's validation details are visible in CI logs.
+if register_status=$(curl -sS -o "$REGISTER_RESPONSE" -w '%{http_code}' \
+  -X POST "$BASE_URL/auth/register" \
   -H "Content-Type: application/json" \
-  -d "$register_payload" >/dev/null; then
-  echo "FAIL: could not register the temporary CI smoke-test account"
+  -d "$register_payload"); then
+  :
+else
+  register_status="000"
+fi
+
+if [ "$register_status" != "201" ]; then
+  echo "FAIL: temporary CI account registration returned HTTP $register_status"
+  echo "Registration response:"
+  cat "$REGISTER_RESPONSE"
+  echo
   exit 1
 fi
 echo "PASS: temporary CI account registration"
