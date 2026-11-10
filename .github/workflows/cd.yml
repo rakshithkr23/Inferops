@@ -49,13 +49,20 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
+          # Generate a secure session secret for this temporary CI deployment.
+          AUTH_SESSION_SECRET="$(openssl rand -hex 32)"
+
           kubectl apply -f k8s/base/namespace.yml
+
           kubectl -n inferops create secret generic inferops-secrets \
             --from-literal=POSTGRES_PASSWORD=ci-password \
             --from-literal=DATABASE_URL=postgresql+psycopg://inferops:ci-password@postgres:5432/inferops \
             --from-literal=GEMINI_API_KEY="${GEMINI_API_KEY}" \
+            --from-literal=AUTH_SESSION_SECRET="${AUTH_SESSION_SECRET}" \
             --dry-run=client -o yaml | kubectl apply -f -
+
           kubectl apply -k k8s/base
+
           kubectl -n inferops rollout status statefulset/postgres --timeout=300s
           kubectl -n inferops rollout status deployment/inferops-backend --timeout=600s
           kubectl -n inferops rollout status deployment/inferops-frontend --timeout=120s

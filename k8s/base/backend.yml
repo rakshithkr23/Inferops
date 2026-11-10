@@ -33,6 +33,11 @@ spec:
                 secretKeyRef:
                   name: inferops-secrets
                   key: GEMINI_API_KEY
+            - name: AUTH_SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: inferops-secrets
+                  key: AUTH_SESSION_SECRET
           # The first start loads the embedding model and seeds data,
           # so allow up to 5 minutes before liveness checks begin.
           startupProbe:
