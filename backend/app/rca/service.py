@@ -15,7 +15,7 @@ from app.schemas.rca import RCAAnalysis
 
 load_dotenv()
 
-MODEL_NAME = "gemini-3.6-flash"
+MODEL_NAME = "gemini-3.5-flash"
 
 
 def analyze_incident(
@@ -120,7 +120,7 @@ Distinguish confirmed evidence from hypotheses.
     client = genai.Client(
         api_key=api_key,
         http_options={
-            "timeout": 90000,
+            "timeout": 180000,
             "retry_options": {"attempts": 3},
         },
     )

@@ -418,8 +418,8 @@ function Settings() {
           <div className="settings-config-grid">
             <div className="settings-config-item">
               <small>AI analysis model</small>
-              <strong>Gemini 3.6 Flash</strong>
-              <span>gemini-3.6-flash</span>
+              <strong>Gemini 3.5 Flash</strong>
+              <span>gemini-3.5-flash</span>
             </div>
 
             <div className="settings-config-item">

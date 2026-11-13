@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react'
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation  } from 'react-router-dom'
 import Sidebar from './Sidebar.jsx'
 import Topbar from './Topbar.jsx'
 
@@ -25,7 +25,15 @@ function readSettings() {
 }
 
 function Layout() {
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const location = useLocation()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuPath, setMenuPath] = useState(location.pathname)
+
+  // Close the menu whenever the route changes.
+  if (menuPath !== location.pathname) {
+    setMenuPath(location.pathname)
+    setMenuOpen(false)
+  }
   const [preferences, setPreferences] = useState(readSettings)
 
   const [systemDark, setSystemDark] = useState(
@@ -41,6 +49,18 @@ function Layout() {
 
     return () => media.removeEventListener('change', onChange)
   }, [])
+    // Close the menu with the Escape key.
+  useEffect(() => {
+    if (!menuOpen) return undefined
+
+    function handleEscape(event) {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+
+    document.addEventListener('keydown', handleEscape)
+
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [menuOpen])
 
   // Resolve the selected theme.
   const resolvedTheme =
@@ -114,14 +134,15 @@ function Layout() {
       className={[
         'dashboard',
         `theme-${resolvedTheme}`,
-        sidebarCollapsed ? 'sidebar-collapsed' : '',
+        menuOpen ? 'menu-open' : '',
         preferences.compactMode ? 'compact-mode' : '',
         preferences.reducedMotion ? 'reduced-motion' : '',
       ].filter(Boolean).join(' ')}
     >
       <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((current) => !current)}
+        open={menuOpen}
+        onToggle={() => setMenuOpen((current) => !current)}
+        onClose={() => setMenuOpen(false)}
       />
 
       <main className="main-content">

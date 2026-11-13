@@ -3403,6 +3403,11 @@ button { cursor: pointer; }
 }
 .dashboard .feedback-benefit {
   color: var(--io-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 /* ---------- BUTTONS ---------- */
 .dashboard .primary-button,
@@ -3972,9 +3977,7 @@ button { cursor: pointer; }
 .dashboard .metric-card,
 .dashboard .stat-card,
 .dashboard .settings-panel,
-.dashboard .feedback-benefit,
-.dashboard .home-capability-card,
-.dashboard .home-workflow-card {
+.dashboard .home-capability-card{
   color: var(--ui-text);
   border: 1px solid var(--ui-border);
   border-radius: 13px;
@@ -4264,10 +4267,6 @@ button { cursor: pointer; }
   background: var(--ui-panel);
 }
 
-.dashboard .home-capability-card,
-.dashboard .home-workflow-card {
-  background: var(--ui-panel);
-}
 
 .dashboard .home-capability-card:hover,
 .dashboard .home-workflow-card:hover {
@@ -4280,10 +4279,6 @@ button { cursor: pointer; }
 .dashboard .home-workflow-number {
   color: var(--ui-accent);
   background: var(--ui-accent-soft);
-}
-
-.dashboard .home-workflow-arrow {
-  color: var(--ui-accent);
 }
 
 .dashboard .home-footer {
@@ -4428,11 +4423,6 @@ button { cursor: pointer; }
 .dashboard .feedback-intro,
 .dashboard .feedback-form {
   min-width: 0;
-}
-
-.dashboard .feedback-benefit {
-  color: var(--ui-text);
-  background: var(--ui-panel-alt);
 }
 
 .dashboard .rating-options {
@@ -5422,5 +5412,349 @@ html[data-theme="light"] .auth-switch {
     align-items: flex-start;
     flex-direction: column;
     padding: 15px 19px;
+  }
+}
+
+/* =========================================================
+   GLASS TOP-DOWN MENU
+   Appended at the VERY END of frontend/src/App.css.
+   Every selector is under `.dashboard`, so it cannot reach
+   the login page (which renders outside `.dashboard`).
+   ========================================================= */
+
+/* ---------- Glass tokens ---------- */
+
+.dashboard.theme-dark {
+  --gm-glass: rgba(255, 255, 255, 0.09);
+  --gm-glass-strong: rgba(255, 255, 255, 0.16);
+  --gm-border: rgba(255, 255, 255, 0.18);
+  --gm-hover: rgba(255, 255, 255, 0.10);
+  --gm-active: rgba(22, 199, 216, 0.18);
+  --gm-active-text: var(--ui-accent, #16c7d8);
+  --gm-scrim: rgba(0, 0, 0, 0.34);
+  --gm-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
+}
+
+.dashboard.theme-light {
+  --gm-glass: rgba(255, 255, 255, 0.60);
+  --gm-glass-strong: rgba(255, 255, 255, 0.82);
+  --gm-border: rgba(20, 30, 45, 0.14);
+  --gm-hover: rgba(20, 30, 45, 0.06);
+  --gm-active: rgba(14, 175, 192, 0.15);
+  --gm-active-text: var(--ui-accent-strong, #078b9a);
+  --gm-scrim: rgba(20, 30, 45, 0.18);
+  --gm-shadow: 0 18px 48px rgba(20, 30, 45, 0.18);
+}
+
+/* Browsers without backdrop blur: raise opacity so text stays readable. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .dashboard.theme-dark {
+    --gm-glass: rgba(30, 33, 40, 0.95);
+    --gm-glass-strong: rgba(44, 48, 57, 0.97);
+  }
+
+  .dashboard.theme-light {
+    --gm-glass: rgba(255, 255, 255, 0.96);
+    --gm-glass-strong: rgba(255, 255, 255, 0.98);
+  }
+}
+
+/* ---------- Corner bubble ---------- */
+
+.dashboard .gm-bubble {
+  position: fixed;
+  top: 10px;
+  left: 14px;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--gm-border);
+  border-radius: 50%;
+  color: var(--ui-text);
+  background: var(--gm-glass);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  box-shadow: var(--gm-shadow);
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.dashboard .gm-bubble:hover {
+  border-color: var(--ui-accent);
+  background: var(--gm-glass-strong);
+}
+
+.dashboard .gm-bubble:active {
+  transform: scale(0.94);
+}
+
+.dashboard .gm-bubble svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ---------- Backdrop (only mounted while open) ---------- */
+
+.dashboard .gm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--gm-scrim);
+  animation: gm-fade-in 220ms ease both;
+}
+
+@keyframes gm-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------- Panel: drops from the top ---------- */
+
+.dashboard .gm-panel {
+  position: fixed;
+  top: 4px;
+  left: 8px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  width: min(360px, calc(100vw - 16px));
+  max-height: calc(100vh - 12px);
+  max-height: calc(100dvh - 12px);
+  overflow-y: auto;
+  padding: 6px 6px 14px;
+  border: 1px solid var(--gm-border);
+  border-radius: 24px;
+  color: var(--ui-text);
+  background: var(--gm-glass);
+  -webkit-backdrop-filter: blur(24px) saturate(0.9);
+  backdrop-filter: blur(24px) saturate(0.9);
+  box-shadow: var(--gm-shadow);
+
+  /* closed state: parked above the viewport */
+  transform: translateY(calc(-100% - 24px));
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 200ms ease,
+    visibility 0s linear 260ms;
+}
+
+.dashboard.menu-open .gm-panel {
+  transform: none;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 200ms ease,
+    visibility 0s;
+}
+
+/* Header row: brand sits to the right of the bubble. */
+.dashboard .gm-panel .gm-head {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 10px;
+  padding-left: 52px;
+}
+
+.dashboard .gm-panel .brand {
+  justify-content: flex-start;
+  margin: 0;
+  padding: 0;
+}
+
+.dashboard .gm-panel .workspace-label {
+  margin: 0;
+  padding: 0 14px 8px;
+}
+
+/* ---------- Navigation inside the panel ---------- */
+
+.dashboard .gm-panel .navigation {
+  display: grid;
+  gap: 4px;
+  overflow: visible;
+  padding: 0 6px;
+}
+
+.dashboard .gm-panel .nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: var(--ui-text);
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  font-size: 14px;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
+}
+
+.dashboard .gm-panel .nav-item:hover {
+  color: var(--ui-text);
+  background: var(--gm-hover);
+  border-color: transparent;
+  transform: none;
+}
+
+.dashboard .gm-panel .nav-item.active {
+  color: var(--gm-active-text);
+  background: var(--gm-active);
+  border-color: transparent;
+  box-shadow: inset 3px 0 var(--gm-active-text);
+  transform: none;
+}
+
+.dashboard .gm-panel .nav-label {
+  display: inline;
+}
+
+/* ---------- Bottom cards inside the panel ---------- */
+
+.dashboard .gm-panel .sidebar-bottom {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 0 6px;
+}
+
+.dashboard .gm-panel .environment-card {
+  justify-content: flex-start;
+  padding: 12px;
+  border: 1px solid var(--gm-border);
+  background: var(--gm-hover);
+}
+
+.dashboard .gm-panel .profile {
+  justify-content: flex-start;
+  margin: 0;
+  padding: 12px 4px 0;
+  border-top: 1px solid var(--gm-border);
+}
+
+/* ---------- Page layout: full width, nothing pushed ---------- */
+
+.dashboard .main-content,
+.dashboard.sidebar-collapsed .main-content {
+  width: 100%;
+  margin-left: 0;
+}
+
+/* ---------- Topbar search: roomy next to the bubble, every screen size ----------
+   The bubble occupies x = 14px to 58px. The search field must start at x = 70px
+   (a 12px gap). The page's own side padding changes with screen width, so
+   --gm-page-pad mirrors it and the left offset is whatever is still needed. */
+
+.dashboard {
+  --gm-page-pad: 34px;
+}
+
+@media (min-width: 1600px) {
+  .dashboard { --gm-page-pad: 48px; }
+}
+
+@media (max-width: 1200px) {
+  .dashboard { --gm-page-pad: 23px; }
+}
+
+@media (max-width: 760px) {
+  .dashboard { --gm-page-pad: 12px; }
+}
+
+@media (max-width: 400px) {
+  .dashboard { --gm-page-pad: 10px; }
+}
+
+.dashboard .topbar {
+  flex-wrap: nowrap;
+}
+
+.dashboard .topbar-left {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-left: calc(70px - var(--gm-page-pad));
+}
+
+.dashboard .topbar-search {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  max-width: 420px;
+}
+
+.dashboard .topbar-search input {
+  width: 100%;
+  padding: 0 34px 0 38px;
+  text-overflow: ellipsis;
+  cursor: text;
+}
+
+.dashboard .topbar-search-clear {
+  z-index: 2;
+}
+
+/* Phones: undo the old "collapse to a 38px icon" behaviour. */
+@media (max-width: 640px) {
+  .dashboard .topbar-search {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .dashboard .topbar-search input,
+  .dashboard .topbar-search input:focus {
+    position: static;
+    z-index: auto;
+    width: 100%;
+    padding: 0 30px 0 36px;
+    color: var(--ui-text);
+    font-size: 14px;
+  }
+
+  .dashboard .topbar-search input::placeholder,
+  .dashboard .topbar-search input:focus::placeholder {
+    color: var(--ui-muted-strong, var(--ui-muted));
+  }
+}
+
+/* Narrow phones: icons on the first row, search gets its own full-width row. */
+@media (max-width: 480px) {
+  .dashboard .topbar {
+    flex-wrap: wrap;
+    align-content: flex-start;
+    padding-bottom: 10px;
+  }
+
+  .dashboard .topbar-right {
+    order: 1;
+    height: 64px;
+    margin-left: auto;
+  }
+
+  .dashboard .topbar-left {
+    order: 2;
+    flex: 1 1 100%;
+    padding-left: 0;
   }
 }
