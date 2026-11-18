@@ -41,10 +41,10 @@ jobs:
           python -m pip install -r backend/requirements.txt pytest
 
       - name: Lint with ruff
-        run: ruff check backend tests
+        run: ruff check backend
 
       - name: Run tests
-        run: python -m pytest tests -v
+        run: python -m pytest backend/tests -v
 
   frontend:
     name: Frontend lint and build

@@ -12,6 +12,7 @@ from app.models.historical_incident import HistoricalIncident
 from app.models.incident import Incident
 from app.models.rca_feedback import RCAFeedback
 from app.rag.similarity_search import find_similar_incidents
+from app.rca.service import RCAServiceError
 from app.rca.workflow import rca_workflow
 from app.schemas.historical_incident import HistoricalIncidentCreate
 from app.schemas.incident import IncidentCreate, IncidentStatusUpdate
@@ -255,7 +256,11 @@ def analyze_incident_rca(request: RCARequest):
             status_code=400,
             detail=str(exc),
         ) from exc
-
+    except RCAServiceError as exc:
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail=exc.public_message,
+        ) from exc
     except Exception as exc:
         logger.exception("RCA analysis request failed")
         error_message = str(exc)

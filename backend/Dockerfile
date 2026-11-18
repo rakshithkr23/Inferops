@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir --default-timeout=300 --retries=10 -r requirement
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')"
 
 COPY app/ ./app/
+COPY tests/ ./tests/
 COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh && chown -R appuser:appuser /app
 

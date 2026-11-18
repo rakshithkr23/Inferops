@@ -19,6 +19,10 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-inferops}:${POSTGRES_PASSWORD:-inferops}@db:5432/${POSTGRES_DB:-inferops}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+      FREELLMAPI_BASE_URL: ${FREELLMAPI_BASE_URL:-http://host.docker.internal:3001/v1}
+      FREELLMAPI_API_KEY: ${FREELLMAPI_API_KEY:-}
+      FREELLMAPI_MODEL: ${FREELLMAPI_MODEL:-auto:fast}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       AUTH_SESSION_SECRET: ${AUTH_SESSION_SECRET}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3002,http://localhost:5173}
