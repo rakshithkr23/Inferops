@@ -2,7 +2,7 @@
 """Health checks for InferOps Service Observatory."""
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
@@ -19,7 +19,7 @@ router = APIRouter(
 
 
 def utc_now():
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def service_result(

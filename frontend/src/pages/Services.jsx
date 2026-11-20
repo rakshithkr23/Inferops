@@ -93,12 +93,20 @@ function Services() {
     }
   }
 
-  useEffect(() => {
+useEffect(() => {
+  const initialFetch = setTimeout(() => {
     fetchHealth()
+  }, 0)
 
-    const interval = setInterval(fetchHealth, 30000)
-    return () => clearInterval(interval)
-  }, [])
+  const interval = setInterval(() => {
+    fetchHealth()
+  }, 30000)
+
+  return () => {
+    clearTimeout(initialFetch)
+    clearInterval(interval)
+  }
+}, [])
 
   const liveServices = healthData?.services || []
 
