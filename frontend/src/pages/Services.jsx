@@ -1,5 +1,6 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { apiFetch } from '../config'
 
 const services = [
   {
@@ -16,8 +17,6 @@ const services = [
       'Provides information to the RCA engine.',
     ],
     technology: ['Python', 'FastAPI'],
-    status: 'Configured',
-    statusClass: 'success',
     icon: '⚙️',
   },
   {
@@ -34,8 +33,6 @@ const services = [
       'Supports vector similarity search through pgvector.',
     ],
     technology: ['PostgreSQL', 'pgvector'],
-    status: 'Configured',
-    statusClass: 'success',
     icon: '🗄️',
   },
   {
@@ -52,8 +49,6 @@ const services = [
       'Suggests recommended corrective actions.',
     ],
     technology: ['RAG', 'LangGraph', 'Gemini'],
-    status: 'Integration to verify',
-    statusClass: 'warning',
     icon: '🧠',
   },
   {
@@ -70,22 +65,75 @@ const services = [
       'Helps identify unhealthy workloads.',
     ],
     technology: ['Docker', 'Kubernetes'],
-    status: 'Live status pending',
-    statusClass: 'warning',
     icon: '☸️',
   },
 ]
 
 function Services() {
   const [selectedService, setSelectedService] = useState('backend')
+  const [healthData, setHealthData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [healthError, setHealthError] = useState('')
+
+  async function fetchHealth() {
+    try {
+      const response = await apiFetch('/services/health')
+
+      if (!response.ok) {
+        throw new Error(`Health check failed (${response.status})`)
+      }
+
+      const data = await response.json()
+      setHealthData(data)
+      setHealthError('')
+    } catch (error) {
+      setHealthError(error.message || 'Unable to fetch service health.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchHealth()
+
+    const interval = setInterval(fetchHealth, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const liveServices = healthData?.services || []
+
+  const configuredCount = liveServices.filter(
+    (service) => service.configured
+  ).length
+
+  const healthyCount = liveServices.filter(
+    (service) => service.status === 'healthy'
+  ).length
 
   const selected = services.find(
     (service) => service.id === selectedService
   )
 
-  const configuredCount = services.filter(
-    (service) => service.status === 'Configured'
-  ).length
+  const selectedHealth = liveServices.find(
+    (service) => service.id === selectedService
+  )
+
+  function getStatusLabel(status) {
+    if (status === 'healthy') return 'Healthy'
+    if (status === 'unhealthy') return 'Unhealthy'
+    return 'Not verified'
+  }
+  function getBadgeClass(status) {
+    if (status === 'healthy') return 'success'
+    if (status === 'unhealthy') return 'danger'
+    return 'warning'
+  }
+
+  function getStatusClass(status) {
+    if (status === 'healthy') return 'is-healthy'
+    if (status === 'unhealthy') return 'is-unhealthy'
+    return 'is-not-verified'
+  }
 
   return (
     <section className="page-section services-page">
@@ -101,7 +149,17 @@ function Services() {
           </p>
         </div>
 
-        <span className="demo-badge">SERVICE DIRECTORY</span>
+        <div>
+          <span className="demo-badge">SERVICE DIRECTORY</span>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={fetchHealth}
+            disabled={loading}
+          >
+            {loading ? 'Checking...' : '↻ Refresh'}
+          </button>
+        </div>
       </div>
 
       {/* Summary */}
@@ -114,18 +172,34 @@ function Services() {
 
         <article className="stat-card">
           <span>Configured components</span>
-          <strong>{configuredCount}</strong>
-          <p>Marked as configured</p>
+          <strong>
+            {healthData ? configuredCount : '—'}
+          </strong>
+          <p>Components with configuration detected</p>
         </article>
 
         <article className="stat-card">
-          <span>Live health monitoring</span>
-          <strong className="services-stat-text">
-            Not connected
+          <span>Healthy services</span>
+          <strong>
+            {healthData ? healthyCount : '—'}
           </strong>
-          <p>Live health checks are not available here</p>
+          <p>
+            {loading && !healthData
+              ? 'Checking service health...'
+              : 'Confirmed by backend health checks'}
+          </p>
         </article>
       </div>
+
+      {/* Health check messages */}
+      {healthError && (
+        <div className="services-information">
+          <span>⚠</span>
+          <p>
+            Unable to retrieve live service health: {healthError}
+          </p>
+        </div>
+      )}
 
       {/* Service directory */}
       <div className="panel services-directory">
@@ -136,7 +210,13 @@ function Services() {
             <p className="page-description">
               Select a service to explore its purpose and responsibilities.
             </p>
+            <div className="service-status-legend">
+              <span><i className="service-status-dot is-healthy" /> Healthy</span>
+              <span><i className="service-status-dot is-unhealthy" /> Unhealthy</span>
+              <span><i className="service-status-dot is-not-verified" /> Not verified</span>
+            </div>
           </div>
+
           <span className="demo-badge">
             {services.length} COMPONENTS
           </span>
@@ -146,32 +226,46 @@ function Services() {
 
           {/* Service list */}
           <div className="services-list">
-            {services.map((service, index) => (
-              <button
-                type="button"
-                key={service.id}
-                className={`service-item ${
-                  selectedService === service.id ? 'active' : ''
-                }`}
-                onClick={() => setSelectedService(service.id)}
-                aria-pressed={selectedService === service.id}
-              >
-                <span className="service-item-number">
-                  0{index + 1}
-                </span>
+            {services.map((service, index) => {
+              const liveStatus = liveServices.find(
+                (item) => item.id === service.id
+              )
 
-                <span className="service-item-icon">
-                  {service.icon}
-                </span>
+              return (
+                <button
+                  type="button"
+                  key={service.id}
+                  className={`service-item ${
+                    selectedService === service.id ? 'active' : ''
+                  }`}
+                  onClick={() => setSelectedService(service.id)}
+                  aria-pressed={selectedService === service.id}
+                >
+                  <span className="service-item-number">
+                    0{index + 1}
+                  </span>
 
-                <span className="service-item-content">
-                  <strong>{service.name}</strong>
-                  <small>{service.category}</small>
-                </span>
+                  <span className="service-item-icon">
+                    {service.icon}
+                  </span>
 
-                <span className="service-item-arrow">→</span>
-              </button>
-            ))}
+                  <span className="service-item-content">
+                    <strong>{service.name}</strong>
+                    <small>{service.category}</small>
+                  </span>
+
+                 
+
+                  {liveStatus && (
+                    <span
+                      className={`service-status-dot ${getStatusClass(liveStatus.status)}`}
+                      title={getStatusLabel(liveStatus.status)}
+                      aria-label={getStatusLabel(liveStatus.status)}
+                  />
+                  )}
+                </button>
+              )
+            })}
           </div>
 
           {/* Selected service details */}
@@ -182,9 +276,21 @@ function Services() {
                 {selected.icon}
               </div>
 
-              <span className={`status-badge ${selected.statusClass}`}>
-                {selected.status}
-              </span>
+              {loading && !selectedHealth ? (
+                <span className="status-badge warning">
+                  Checking...
+                </span>
+              ) : (
+                <span
+                  className={`status-badge ${
+                    getBadgeClass(selectedHealth?.status)
+                  }`}
+                >
+                  {selectedHealth
+                    ? getStatusLabel(selectedHealth.status)
+                    : 'Unavailable'}
+                </span>
+              )}
             </div>
 
             <p className="eyebrow">{selected.category}</p>
@@ -194,6 +300,37 @@ function Services() {
             <p className="service-detail-summary">
               {selected.description}
             </p>
+
+            {/* Live health information */}
+            <div className="service-detail-section">
+              <h3>Live Health Information</h3>
+
+              {selectedHealth ? (
+                <>
+                  <p>{selectedHealth.message}</p>
+                  <p>
+                    <strong>Configuration:</strong>{' '}
+                    {selectedHealth.configured
+                      ? 'Available'
+                      : 'Not configured'}
+                  </p>
+                  <p>
+                    <strong>Last checked:</strong>{' '}
+                    {selectedHealth.checked_at
+                      ? new Date(
+                          selectedHealth.checked_at
+                        ).toLocaleString()
+                      : 'Not available'}
+                  </p>
+                </>
+              ) : (
+                <p>
+                  {healthError
+                    ? 'Live health information could not be retrieved.'
+                    : 'Waiting for the backend health check.'}
+                </p>
+              )}
+            </div>
 
             <div className="service-detail-section">
               <h3>What does this service do?</h3>
@@ -233,9 +370,11 @@ function Services() {
       <div className="services-information">
         <span>ⓘ</span>
         <p>
-          This page describes the configured components of InferOps.
-          The displayed statuses are configuration labels, not
-          real-time service health results.
+          Service health is retrieved from the InferOps backend.
+          PostgreSQL is checked using a live test query. Gemini and
+          Kubernetes display their configuration status and are marked
+          as not verified until live connectivity checks are implemented.
+          Health information refreshes every 30 seconds.
         </p>
       </div>
 
@@ -244,3 +383,4 @@ function Services() {
 }
 
 export default Services
+

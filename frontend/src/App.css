@@ -1251,9 +1251,7 @@ button { cursor: pointer; }
     padding-right: 10px;
     padding-left: 10px;
   }
-  .dashboard .page-section .stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  
 }
 .rating-options {
   display: flex;
@@ -4445,6 +4443,36 @@ button { cursor: pointer; }
   background: var(--ui-accent-soft);
 }
 
+
+.dashboard .feedback-form .rating-field {
+  border: none;
+  padding: 0;
+  margin: 0 0 20px;
+  min-width: 0;
+}
+
+.dashboard .feedback-form .rating-field legend {
+  padding: 0;
+  margin-bottom: 10px;
+  color: var(--ui-text);
+  font-size: 15px;
+}
+
+.dashboard .feedback-form .rating-button {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 2px;
+  font-size: 27px;
+}
+
+.dashboard .feedback-form .rating-button:hover,
+.dashboard .feedback-form .rating-button.selected {
+  color: #f59e0b;
+  border: none;
+  background: transparent;
+}
+
 /* ---------- Settings page ---------- */
 
 .dashboard .settings-page .settings-panel {
@@ -5757,4 +5785,49 @@ html[data-theme="light"] .auth-switch {
     flex: 1 1 100%;
     padding-left: 0;
   }
+}
+/* Service Observatory status indicators */
+.dashboard .service-status-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.dashboard .service-status-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--ui-muted);
+}
+
+.dashboard .service-status-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  min-width: 9px;
+  border-radius: 50%;
+}
+
+.dashboard .service-status-dot.is-healthy {
+  background: #22c55e;
+}
+
+.dashboard .service-status-dot.is-unhealthy {
+  background: #ef4444;
+}
+
+.dashboard .service-status-dot.is-not-verified {
+  background: #eab308;
+}
+
+/* Remove pill styling from service detail status */
+.dashboard .services-page .service-detail-header .status-badge {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }

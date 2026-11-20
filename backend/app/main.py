@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import auth_router
 from app.database.dependencies import get_db
+from app.service_health import router as service_health_router
 from app.detection.monitor import monitor_demo_metrics
 from app.routes import router
 
@@ -47,6 +48,7 @@ app.add_middleware(
 
 app.include_router(router)
 app.include_router(auth_router)
+app.include_router(service_health_router)
 
 @app.get("/")
 def root():
