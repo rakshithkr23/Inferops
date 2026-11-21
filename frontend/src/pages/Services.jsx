@@ -48,7 +48,7 @@ const services = [
       'Generates probable root causes.',
       'Suggests recommended corrective actions.',
     ],
-    technology: ['RAG', 'LangGraph', 'Gemini'],
+    technology: ['RAG', 'LangGraph', 'Gemini', 'FreeLLMAPI','pgvector','Sentence Transformers'],
     icon: '🧠',
   },
   {
@@ -129,17 +129,20 @@ useEffect(() => {
   function getStatusLabel(status) {
     if (status === 'healthy') return 'Healthy'
     if (status === 'unhealthy') return 'Unhealthy'
+    if (status === 'configured') return 'Configured'
     return 'Not verified'
   }
   function getBadgeClass(status) {
     if (status === 'healthy') return 'success'
     if (status === 'unhealthy') return 'danger'
+    if (status === 'configured') return 'info'
     return 'warning'
   }
 
   function getStatusClass(status) {
     if (status === 'healthy') return 'is-healthy'
     if (status === 'unhealthy') return 'is-unhealthy'
+    if (status === 'configured') return 'is-configured'
     return 'is-not-verified'
   }
 
@@ -339,6 +342,36 @@ useEffect(() => {
                 </p>
               )}
             </div>
+      {selected.id === 'ai' && selectedHealth?.components && (
+  <div className="service-detail-section">
+    <h3>AI Engine Components</h3>
+
+    <ul className="service-responsibilities">
+      {selectedHealth.components.map((component) => (
+        <li key={component.id}>
+          <div>
+            <strong>{component.name}</strong>
+            <p>{component.role}</p>
+
+            {component.model && (
+              <p>
+                <strong>Model:</strong> {component.model}
+              </p>
+            )}
+
+            <p>{component.message}</p>
+
+            <span
+              className={`status-badge ${getBadgeClass(component.status)}`}
+            >
+              {getStatusLabel(component.status)}
+            </span>
+          </div>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
 
             <div className="service-detail-section">
               <h3>What does this service do?</h3>
@@ -378,11 +411,12 @@ useEffect(() => {
       <div className="services-information">
         <span>ⓘ</span>
         <p>
-          Service health is retrieved from the InferOps backend.
-          PostgreSQL is checked using a live test query. Gemini and
-          Kubernetes display their configuration status and are marked
-          as not verified until live connectivity checks are implemented.
-          Health information refreshes every 30 seconds.
+        Service health is retrieved from the InferOps backend.
+        AI provider connectivity is tested independently.
+        The AI Engine status reflects the primary FreeLLMAPI provider.
+        Gemini is displayed as the backup provider.
+        Embedding, RAG and LangGraph components show their configuration
+        status. Health information refreshes every 30 seconds.
         </p>
       </div>
 

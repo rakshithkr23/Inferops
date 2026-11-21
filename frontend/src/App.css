@@ -1268,7 +1268,7 @@ button { cursor: pointer; }
 }
 .rating-button:hover,
 .rating-button.selected {
-  color: #f59e0b;
+  color: #ddcbac;
   border-color: #f59e0b;
 }
 .rating-button.selected {
@@ -4273,8 +4273,7 @@ button { cursor: pointer; }
 }
 
 .dashboard .home-capability-icon,
-.dashboard .home-capability-tag,
-.dashboard .home-workflow-number {
+.dashboard .home-capability-tag{
   color: var(--ui-accent);
   background: var(--ui-accent-soft);
 }
@@ -4416,141 +4415,336 @@ button { cursor: pointer; }
   color: var(--ui-muted);
 }
 
+
 /* ---------- Feedback page ---------- */
 
-.dashboard .feedback-intro,
-.dashboard .feedback-form {
+.dashboard .feedback-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.dashboard .feedback-page .feedback-hero,
+.dashboard .feedback-page .feedback-form-panel {
   min-width: 0;
+  padding: 26px;
+  border: 1px solid var(--ui-border);
+  border-radius: 16px;
+  background: var(--ui-panel);
+}
+
+/* RCA improvement hero */
+
+.dashboard .feedback-hero-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.dashboard .feedback-hero-icon,
+.dashboard .feedback-benefit-icon,
+.dashboard .feedback-form-heading-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--ui-accent);
+  background: var(--ui-accent-soft);
+  border-radius: 13px;
+}
+
+.dashboard .feedback-hero-icon {
+  width: 54px;
+  height: 54px;
+  font-size: 27px;
+}
+
+.dashboard .feedback-hero-text {
+  min-width: 0;
+}
+
+.dashboard .feedback-hero-text .eyebrow,
+.dashboard .feedback-form-heading .eyebrow {
+  margin: 0 0 7px;
+  color: var(--ui-accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+}
+
+.dashboard .feedback-hero-text h2,
+.dashboard .feedback-form-heading h2 {
+  margin: 0;
+  color: var(--ui-text);
+  font-size: 21px;
+  font-weight: 750;
+  letter-spacing: -0.5px;
+}
+
+.dashboard .feedback-hero-text > p:last-child {
+  max-width: 780px;
+  margin: 10px 0 0;
+  color: var(--ui-muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+/* Three feedback benefits */
+
+.dashboard .feedback-benefits {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 13px;
+  margin-top: 25px;
+}
+
+.dashboard .feedback-benefit-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  min-width: 0;
+  padding: 17px;
+  border: 1px solid var(--ui-border);
+  border-radius: 12px;
+  background: var(--ui-panel-alt);
+}
+
+.dashboard .feedback-benefit-icon {
+  width: 37px;
+  height: 37px;
+  font-size: 22px;
+}
+
+.dashboard .feedback-benefit-card h3 {
+  margin: 1px 0 6px;
+  color: var(--ui-text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.dashboard .feedback-benefit-card p {
+  margin: 0;
+  color: var(--ui-muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.dashboard .feedback-hero-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ui-border);
+  color: var(--ui-muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+/* Submit feedback heading */
+
+.dashboard .feedback-form-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 25px;
+}
+
+.dashboard .feedback-form-heading > div:first-child > p:last-child {
+  margin: 8px 0 0;
+  color: var(--ui-muted);
+  font-size: 12px;
+}
+
+.dashboard .feedback-form-heading-icon {
+  width: 46px;
+  height: 46px;
+  font-size: 23px;
+}
+
+/* Rating */
+
+.dashboard .feedback-form .rating-field {
+  min-width: 0;
+  margin: 0 0 24px;
+  padding: 0;
+  border: 0;
+}
+
+.dashboard .feedback-form .rating-field legend {
+  margin-bottom: 12px;
+  padding: 0;
+  color: var(--ui-text);
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .dashboard .rating-options {
   display: flex;
-  flex-wrap: wrap;
-  gap: 9px;
-}
-
-.dashboard .rating-button {
-  color: var(--ui-muted);
-  border: 1px solid var(--ui-border-strong);
-  background: var(--ui-panel);
-  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
-}
-
-.dashboard .rating-button:hover,
-.dashboard .rating-button.selected {
-  color: var(--ui-accent);
-  border-color: var(--ui-accent);
-  background: var(--ui-accent-soft);
-}
-
-
-.dashboard .feedback-form .rating-field {
-  border: none;
-  padding: 0;
-  margin: 0 0 20px;
-  min-width: 0;
-}
-
-.dashboard .feedback-form .rating-field legend {
-  padding: 0;
-  margin-bottom: 10px;
-  color: var(--ui-text);
-  font-size: 15px;
+  align-items: center;
+  gap: 8px;
 }
 
 .dashboard .feedback-form .rating-button {
-  border: none;
-  background: transparent;
-  box-shadow: none;
-  padding: 2px;
-  font-size: 27px;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: var(--ui-panel-alt);
+  color: var(--ui-muted);
+  font-size: 25px;
+  transition: color 150ms ease, background-color 150ms ease,
+    border-color 150ms ease, transform 150ms ease;
 }
 
 .dashboard .feedback-form .rating-button:hover,
 .dashboard .feedback-form .rating-button.selected {
   color: #f59e0b;
-  border: none;
-  background: transparent;
-}
-
-/* ---------- Settings page ---------- */
-
-.dashboard .settings-page .settings-panel {
-  overflow: hidden;
-}
-
-.dashboard .settings-page .setting-row {
-  border-color: var(--ui-border);
-}
-
-.dashboard .settings-page .setting-row strong {
-  color: var(--ui-text);
-}
-
-.dashboard .settings-page .setting-row small,
-.dashboard .settings-page .settings-info-item,
-.dashboard .settings-page .system-status-footer {
-  color: var(--ui-muted);
-}
-
-.dashboard .settings-page .settings-info-item {
-  border-color: var(--ui-border);
+  border-color: #f59e0b;
   background: var(--ui-panel-alt);
+  transform: translateY(-2px);
 }
 
-.dashboard .settings-page .settings-status {
-  color: var(--ui-success);
+.dashboard .feedback-rating-hint {
+  margin: 9px 0 0;
+  color: var(--ui-muted);
+  font-size: 11px;
 }
 
-/* ---------- Login and registration (outside .dashboard) ---------- */
+/* Form fields */
 
-html[data-theme="dark"] .login-page {
-  color: #edf3fa;
-  background: #0c111b;
+.dashboard .feedback-form-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 19px;
 }
 
-html[data-theme="dark"] .login-card {
-  color: #edf3fa;
-  border-color: #29384b;
-  background: #131c2a;
+.dashboard .feedback-field {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-html[data-theme="dark"] .login-card h1,
-html[data-theme="dark"] .login-card h2,
-html[data-theme="dark"] .login-card label {
-  color: #edf3fa;
+.dashboard .feedback-field label {
+  margin-bottom: 8px;
+  color: var(--ui-text);
+  font-size: 12px;
+  font-weight: 700;
 }
 
-html[data-theme="dark"] .login-subtitle,
-html[data-theme="dark"] .auth-switch {
-  color: #a5b2c3;
+.dashboard .feedback-field select,
+.dashboard .feedback-field textarea {
+  width: 100%;
+  margin: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 10px;
+  background: var(--ui-panel-alt);
+  color: var(--ui-text);
+  font-size: 13px;
 }
 
-html[data-theme="light"] .login-page {
-  color: #172438;
-  background: #f4f7fb;
+.dashboard .feedback-field select {
+  min-height: 45px;
+  padding: 0 13px;
 }
 
-html[data-theme="light"] .login-card {
-  color: #172438;
-  border-color: #dce4ed;
-  background: #ffffff;
+.dashboard .feedback-field textarea {
+  min-height: 135px;
+  padding: 13px;
+  resize: vertical;
+  line-height: 1.7;
 }
 
-html[data-theme="light"] .login-card h1,
-html[data-theme="light"] .login-card h2,
-html[data-theme="light"] .login-card label {
-  color: #172438;
+.dashboard .feedback-field select:focus,
+.dashboard .feedback-field textarea:focus {
+  outline: none;
+  border-color: var(--ui-accent);
 }
 
-html[data-theme="light"] .login-subtitle,
-html[data-theme="light"] .auth-switch {
-  color: #53647a;
+.dashboard .feedback-field textarea::placeholder {
+  color: var(--ui-muted);
+  opacity: 0.8;
 }
 
-.login-page .auth-tabs button,
-.login-page .google-login-button {
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
+.dashboard .feedback-form .character-count {
+  margin: 7px 0 0;
+  color: var(--ui-muted);
+  font-size: 11px;
+  text-align: right;
+}
+
+/* Submit action */
+
+.dashboard .feedback-submit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 22px;
+  padding-top: 19px;
+  border-top: 1px solid var(--ui-border);
+}
+
+.dashboard .feedback-submit-note {
+  margin: 0;
+  color: var(--ui-muted);
+  font-size: 11px;
+}
+
+.dashboard .feedback-submit-button {
+  min-width: 165px;
+  min-height: 43px;
+  border-radius: 10px;
+}
+
+.dashboard .feedback-form .form-message {
+  margin: 15px 0 0;
+}
+
+/* Responsive layout */
+
+@media (max-width: 760px) {
+  .dashboard .feedback-benefits {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboard .feedback-benefit-card {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 520px) {
+  .dashboard .feedback-page .feedback-hero,
+  .dashboard .feedback-page .feedback-form-panel {
+    padding: 18px;
+  }
+
+  .dashboard .feedback-hero-content {
+    gap: 12px;
+  }
+
+  .dashboard .feedback-hero-icon {
+    width: 43px;
+    height: 43px;
+    font-size: 22px;
+  }
+
+  .dashboard .feedback-hero-text h2,
+  .dashboard .feedback-form-heading h2 {
+    font-size: 18px;
+  }
+
+  
+  .dashboard .feedback-submit-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dashboard .feedback-submit-button {
+    width: 100%;
+  }
 }
 
 /* ---------- Keyboard focus, reduced motion and responsive layout ---------- */
