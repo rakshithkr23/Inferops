@@ -6025,3 +6025,44 @@ button { cursor: pointer; }
   box-shadow: none !important;
   padding: 0 !important;
 }
+.dashboard .page-section .rca-report-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 16px;
+}
+
+.dashboard .page-section .rca-download-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--ui-accent);
+  border-radius: 9px;
+  background: var(--ui-accent);
+  color: #08131b;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: filter 160ms ease, transform 160ms ease;
+}
+
+.dashboard .page-section .rca-download-button:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.dashboard .page-section .rca-download-button:focus-visible {
+  outline: 3px solid var(--ui-accent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .dashboard .page-section .rca-report-actions {
+    justify-content: stretch;
+  }
+
+  .dashboard .page-section .rca-download-button {
+    width: 100%;
+  }
+}

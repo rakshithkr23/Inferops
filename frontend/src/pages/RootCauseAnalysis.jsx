@@ -1,6 +1,7 @@
 
 import { useState } from 'react'
 import { API_URL, apiFetch } from '../config'
+import { generateRcaPdf } from '../utils/generateRcaPdf'
 
 function RootCauseAnalysis() {
   const [form, setForm] = useState({
@@ -220,6 +221,15 @@ function RootCauseAnalysis() {
               <span>AI model</span>
               <strong>{result.model}</strong>
             </article>
+          </div>
+          <div className="rca-report-actions">
+            <button
+              type="button"
+              className="rca-download-button"
+              onClick={() => generateRcaPdf(result)}
+            >
+            Download RCA Report
+            </button>
           </div>
 
           <article className="panel rca-panel">
