@@ -13,7 +13,6 @@ export function generateRcaPdf(result) {
   })
 
   const W = 210
-  const H = 297
   const M = 17
   const CW = W - M * 2
 
@@ -44,7 +43,7 @@ export function generateRcaPdf(result) {
       .replace(/[“”]/g, '"')
       .replace(/[–—]/g, '-')
       .replace(/\u00a0/g, ' ')
-      .replace(/[^\x09\x0A\x0D\x20-\xFF]/g, '')
+      .replace(/[^\x20-\xFF]/g, '')
       .trim()
   }
 
