@@ -53,6 +53,9 @@ function Incidents() {
   const [error, setError] = useState('')
   const [updatingId, setUpdatingId] = useState(null)
   const [preferences, setPreferences] = useState(readIncidentPreferences)
+  const [recentRcaRecords, setRecentRcaRecords] = useState([])
+  const [rcaLoading, setRcaLoading] = useState(true)
+  const [rcaError, setRcaError] = useState('')
 
   useEffect(() => {
   let active = true
@@ -182,6 +185,62 @@ useEffect(() => {
     )
   }
 }, [])
+
+
+useEffect(() => {
+  let active = true
+
+  async function fetchRecentRcaRecords() {
+    try {
+      const response = await apiFetch('/rca/recent')
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to load recent RCA records (${response.status})`
+        )
+      }
+
+      const data = await response.json()
+
+      if (!Array.isArray(data)) {
+        throw new Error('Unexpected RCA records received from backend.')
+      }
+
+      if (active) {
+        setRecentRcaRecords(data.slice(0, 5))
+        setRcaError('')
+      }
+    } catch (err) {
+      if (active) {
+        setRcaError(
+          err.message || 'Unable to load recent RCA records.'
+        )
+      }
+    } finally {
+      if (active) {
+        setRcaLoading(false)
+      }
+    }
+  }
+
+  fetchRecentRcaRecords()
+
+  const interval = preferences.autoRefresh
+    ? setInterval(
+        fetchRecentRcaRecords,
+        Number(preferences.refreshInterval) * 1000
+      )
+    : null
+
+  return () => {
+    active = false
+
+    if (interval) {
+      clearInterval(interval)
+    }
+  }
+}, [preferences.autoRefresh, preferences.refreshInterval])
+
 
   async function updateIncidentStatus(incidentId, newStatus) {
     const currentIncident = incidents.find(
@@ -406,6 +465,95 @@ const filteredIncidents = incidents.filter((incident) => {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+      </section>
+      {/* Recent RCA Incidents */}
+      <section className="panel recent-rca-panel">
+        <div className="panel-heading">
+          <div>
+            <h2>Recent RCA Incidents</h2>
+            <p>
+              Five most recently analyzed incidents stored in the database
+            </p>
+          </div>
+
+          <span className="demo-badge">
+            {rcaLoading ? 'LOADING' : rcaError ? 'API ERROR' : 'DATABASE'}
+          </span>
+        </div>
+
+        {rcaError && (
+          <p className="recent-rca-message" role="alert">
+            {rcaError}
+          </p>
+        )}
+
+        {rcaLoading ? (
+          <p className="recent-rca-message">
+            Loading recent RCA records...
+          </p>
+        ) : recentRcaRecords.length === 0 ? (
+          <div className="recent-rca-empty">
+            <span className="recent-rca-empty-icon">⌕</span>
+            <h3>No RCA records yet</h3>
+            <p>
+              Successfully analyzed RCA submissions will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="recent-rca-list">
+            {recentRcaRecords.map((record, index) => (
+              <article
+                className="recent-rca-item"
+                key={record.id ?? record.rca_id}
+              >
+                <div className="recent-rca-number">
+                  {String(index + 1).padStart(2, '0')}
+                </div>
+
+                <div className="recent-rca-content">
+                  <div className="recent-rca-top">
+                    <div>
+                      <h3>{formatLabel(record.incident_type)}</h3>
+                      <span className="recent-rca-id">
+                        {record.rca_id || `RCA-${record.id}`}
+                      </span>
+                    </div>
+
+                    <span
+                      className={`severity severity-${String(
+                        record.severity || 'unknown'
+                      ).toLowerCase()}`}
+                    >
+                      {formatLabel(record.severity)}
+                    </span>
+                  </div>
+
+                  <div className="recent-rca-meta">
+                    <span>
+                      <strong>Service:</strong>{' '}
+                      {record.service_name || 'Unknown'}
+                    </span>
+                    <span>
+                      <strong>Submitted:</strong>{' '}
+                      {formatRelativeTime(record.created_at)}
+                    </span>
+                  </div>
+
+                  <p className="recent-rca-description">
+                    {record.description || 'No description available.'}
+                  </p>
+
+                  {record.probable_root_cause && (
+                    <div className="recent-rca-root-cause">
+                      <span>PROBABLE ROOT CAUSE</span>
+                      <p>{record.probable_root_cause}</p>
+                    </div>
+                  )}
+                </div>
+              </article>
+            ))}
           </div>
         )}
       </section>

@@ -2,9 +2,13 @@
 import json
 from unittest.mock import patch
 
+from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
+
 import pytest
 from app.auth import get_current_user
 from app.main import app
+from app.database.dependencies import get_db
 from app.rca.service import (
     RCAServiceError,
     _normalize_and_validate,
@@ -126,6 +130,7 @@ def test_rca_rejects_empty_description(mock_rag, mock_freellmapi, mock_gemini):
     mock_rag.assert_not_called()
 
 
+
 def test_rca_api_returns_expected_response():
     fake_result = {
         "incident": INCIDENT.copy(),
@@ -134,22 +139,68 @@ def test_rca_api_returns_expected_response():
         "model": "test-model",
     }
 
-    payload = INCIDENT.copy()
+    class FakeDB:
+        def __init__(self):
+            self.added_records = []
+            self.committed = False
+            self.rolled_back = False
+
+        def add(self, record):
+            self.added_records.append(record)
+
+        def commit(self):
+            self.committed = True
+
+        def refresh(self, record):
+            pass
+
+        def rollback(self):
+            self.rolled_back = True
+
+    fake_db = FakeDB()
 
     app.dependency_overrides[get_current_user] = lambda: None
+    app.dependency_overrides[get_db] = lambda: fake_db
 
     try:
         with patch(
             "app.routes.rca_workflow.invoke",
             return_value={"rca_result": fake_result},
         ) as mocked_workflow:
-            response = client.post("/rca/analyze", json=payload)
+            response = client.post(
+                "/rca/analyze",
+                json=INCIDENT,
+            )
     finally:
         app.dependency_overrides.pop(get_current_user, None)
+        app.dependency_overrides.pop(get_db, None)
 
     assert response.status_code == 200
-    assert response.json() == fake_result
+
+    response_data = response.json()
+
+    assert response_data["rca_id"]
+    assert response_data["incident"] == INCIDENT
+    assert response_data["analysis"] == VALID_ANALYSIS
+    assert response_data["model"] == "test-model"
+
     mocked_workflow.assert_called_once()
+
+    # Verify that the successful RCA was saved.
+    assert len(fake_db.added_records) == 1
+    assert fake_db.committed is True
+
+    saved_record = fake_db.added_records[0]
+
+    assert saved_record.rca_id == response_data["rca_id"]
+    assert saved_record.incident_type == INCIDENT["incident_type"]
+    assert saved_record.service_name == INCIDENT["service_name"]
+    assert saved_record.severity == INCIDENT["severity"]
+    assert saved_record.description == INCIDENT["description"]
+    assert saved_record.probable_root_cause == (
+        VALID_ANALYSIS["probable_root_cause"]
+    )
+    assert saved_record.model == "test-model"
 
 
 def test_health_endpoint():
@@ -169,3 +220,89 @@ def test_rca_falls_back_to_gemini(mock_rag, mock_freellmapi, mock_gemini):
     mock_rag.assert_called_once()
     mock_freellmapi.assert_called_once()
     mock_gemini.assert_called_once()
+
+
+def test_recent_rca_api_returns_five_records_newest_first():
+    now = datetime.now(UTC)
+
+    fake_records = [
+        SimpleNamespace(
+            id=i,
+            rca_id=f"test-rca-{i}",
+            incident_type="Database Connection Failure",
+            service_name="inferops-backend",
+            severity="high",
+            description=f"Test incident {i}",
+            probable_root_cause="Database connection failure",
+            evidence=["Connection attempts failed"],
+            recommended_actions=["Check database connectivity"],
+            confidence="medium",
+            limitations=["Database logs unavailable"],
+            created_at=now - timedelta(minutes=i),
+        )
+        for i in range(1, 6)
+    ]
+
+    class FakeDB:
+        pass
+
+    fake_db = FakeDB()
+
+    app.dependency_overrides[get_current_user] = lambda: None
+    app.dependency_overrides[get_db] = lambda: fake_db
+
+    try:
+        with patch(
+            "app.routes.get_recent_rca_records",
+            return_value=fake_records,
+        ) as mocked_service:
+            response = client.get("/rca/recent")
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+        app.dependency_overrides.pop(get_db, None)
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data) == 5
+    assert data[0]["rca_id"] == "test-rca-1"
+    assert data[4]["rca_id"] == "test-rca-5"
+
+    assert data[0]["evidence"] == [
+        "Connection attempts failed"
+    ]
+    assert data[0]["recommended_actions"] == [
+        "Check database connectivity"
+    ]
+    assert data[0]["confidence"] == "medium"
+
+    mocked_service.assert_called_once_with(fake_db, limit=5)
+
+
+def test_recent_rca_api_handles_database_error():
+    class FakeDB:
+        def rollback(self):
+            self.rolled_back = True
+
+    fake_db = FakeDB()
+
+    app.dependency_overrides[get_current_user] = lambda: None
+    app.dependency_overrides[get_db] = lambda: fake_db
+
+    try:
+        with patch(
+            "app.routes.get_recent_rca_records",
+            side_effect=Exception("Database unavailable"),
+        ):
+            response = client.get("/rca/recent")
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+        app.dependency_overrides.pop(get_db, None)
+
+    assert response.status_code == 500
+    assert response.json()["detail"] == (
+        "Failed to retrieve recent RCA records."
+    )
+    assert fake_db.rolled_back is True
+

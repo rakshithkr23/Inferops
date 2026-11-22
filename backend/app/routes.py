@@ -11,7 +11,9 @@ from app.detection.engine import detect_incidents
 from app.models.historical_incident import HistoricalIncident
 from app.models.incident import Incident
 from app.models.rca_feedback import RCAFeedback
+from app.models.rca_record import RCARecord
 from app.rag.similarity_search import find_similar_incidents
+from app.rca.record_service import get_recent_rca_records
 from app.rca.service import RCAServiceError
 from app.rca.workflow import rca_workflow
 from app.schemas.historical_incident import HistoricalIncidentCreate
@@ -19,6 +21,7 @@ from app.schemas.incident import IncidentCreate, IncidentStatusUpdate
 from app.schemas.rag import RAGSearchRequest, RAGSearchResponse
 from app.schemas.rca import RCARequest, RCAResponse
 from app.schemas.rca_feedback import RCAFeedbackCreate, RCAFeedbackResponse
+from app.schemas.rca_record import RCARecordResponse
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +58,29 @@ def get_incidents(db: Session = Depends(get_db)):
             status_code=500,
             detail="Failed to retrieve incidents from the database."
         )
+
+
+@router.get(
+    "/rca/recent",
+    response_model=list[RCARecordResponse],
+)
+def get_recent_rca_submissions(
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieve the five most recently completed RCA submissions.
+    """
+    try:
+        return get_recent_rca_records(db, limit=5)
+
+    except Exception as exc:
+        db.rollback()
+        logger.exception("Failed to retrieve recent RCA records")
+
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve recent RCA records.",
+        ) from exc
 
 @router.post("/detect-incidents")
 def run_incident_detection(
@@ -236,9 +262,14 @@ def search_similar_historical_incidents(
             detail="Failed to search historical incidents.",
         ) from exc
 
+
 @router.post("/rca/analyze", response_model=RCAResponse)
-def analyze_incident_rca(request: RCARequest):
+def analyze_incident_rca(
+    request: RCARequest,
+    db: Session = Depends(get_db),
+):
     try:
+        # Run the existing RCA workflow.
         result = rca_workflow.invoke({
             "incident_type": request.incident_type,
             "service_name": request.service_name,
@@ -247,22 +278,26 @@ def analyze_incident_rca(request: RCARequest):
         })
 
         rca_result = result["rca_result"]
-        rca_result["rca_id"] = str(uuid4())
 
-        return rca_result
+        # Generate the existing unique RCA ID.
+        rca_id = str(uuid4())
+        rca_result["rca_id"] = rca_id
 
     except ValueError as exc:
         raise HTTPException(
             status_code=400,
             detail=str(exc),
         ) from exc
+
     except RCAServiceError as exc:
         raise HTTPException(
             status_code=exc.status_code,
             detail=exc.public_message,
         ) from exc
+
     except Exception as exc:
         logger.exception("RCA analysis request failed")
+
         error_message = str(exc)
         cause_message = str(exc.__cause__) if exc.__cause__ else ""
         combined_error = f"{error_message} {cause_message}".lower()
@@ -284,6 +319,53 @@ def analyze_incident_rca(request: RCARequest):
             status_code=500,
             detail="Failed to analyze the incident.",
         ) from exc
+
+    # Save only after the RCA workflow has completed successfully.
+    try:
+        incident = rca_result["incident"]
+        analysis = rca_result["analysis"]
+
+        saved_record = RCARecord(
+            rca_id=rca_id,
+            incident_type=incident["incident_type"],
+            service_name=incident["service_name"],
+            severity=incident["severity"],
+            description=incident["description"],
+            probable_root_cause=analysis["probable_root_cause"],
+            evidence=analysis["evidence"],
+            recommended_actions=analysis["recommended_actions"],
+            confidence=analysis["confidence"],
+            limitations=analysis["limitations"],
+            model=rca_result["model"],
+        )
+
+        db.add(saved_record)
+        db.commit()
+        db.refresh(saved_record)
+
+        logger.info(
+            "Successfully saved RCA record: %s",
+            saved_record.rca_id,
+        )
+
+    except Exception as exc:
+        db.rollback()
+
+        logger.exception(
+            "RCA analysis succeeded, but saving its database record failed."
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "RCA analysis completed, but its result could not "
+                "be saved to the database."
+            ),
+        ) from exc
+
+    # Preserve the existing API response structure.
+    return rca_result
+
 
 @router.post("/rca/feedback", response_model=RCAFeedbackResponse)
 def create_rca_feedback(

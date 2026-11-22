@@ -6066,3 +6066,130 @@ button { cursor: pointer; }
     width: 100%;
   }
 }
+
+/* Recent RCA Incidents */
+
+.dashboard .recent-rca-panel {
+  margin-top: 22px;
+}
+
+.dashboard .recent-rca-list {
+  display: grid;
+}
+
+.dashboard .recent-rca-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 18px 20px;
+  border-top: 1px solid var(--ui-border);
+}
+
+.dashboard .recent-rca-number {
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  color: var(--ui-accent);
+  background: var(--ui-panel-alt);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.dashboard .recent-rca-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard .recent-rca-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.dashboard .recent-rca-top h3 {
+  margin: 0;
+  color: var(--ui-text);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.dashboard .recent-rca-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: 11px;
+  color: var(--ui-muted);
+  font-size: 10px;
+}
+
+.dashboard .recent-rca-meta strong {
+  color: var(--ui-text);
+}
+
+.dashboard .recent-rca-description {
+  margin: 11px 0 0;
+  color: var(--ui-muted);
+  font-size: 10px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.dashboard .recent-rca-root-cause {
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-left: 3px solid var(--ui-accent);
+  border-radius: 0 7px 7px 0;
+  background: var(--ui-panel-alt);
+}
+
+.dashboard .recent-rca-root-cause > span {
+  color: var(--ui-accent);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .7px;
+}
+
+.dashboard .recent-rca-root-cause p {
+  margin: 6px 0 0;
+  color: var(--ui-text);
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+.dashboard .recent-rca-message {
+  margin: 0;
+  padding: 18px 20px;
+  color: var(--ui-muted);
+  font-size: 10px;
+}
+
+.dashboard .recent-rca-empty {
+  padding: 30px 20px;
+  text-align: center;
+  border-top: 1px solid var(--ui-border);
+}
+
+.dashboard .recent-rca-empty h3 {
+  color: var(--ui-text);
+  font-size: 12px;
+}
+
+.dashboard .recent-rca-empty p {
+  color: var(--ui-muted);
+  font-size: 10px;
+}
+
+@media (max-width: 600px) {
+  .dashboard .recent-rca-item {
+    gap: 10px;
+    padding: 15px 12px;
+  }
+
+  .dashboard .recent-rca-top {
+    flex-direction: column;
+  }
+}
