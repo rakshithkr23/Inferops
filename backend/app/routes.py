@@ -52,12 +52,13 @@ def get_incidents(db: Session = Depends(get_db)):
     try:
         incidents = db.query(Incident).all()
         return incidents
-    except Exception:
+    except Exception as exc:
         db.rollback()
+        logger.exception("Failed to retrieve incidents")
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve incidents from the database."
-        )
+        ) from exc
 
 
 @router.get(
@@ -156,12 +157,13 @@ def create_historical_incident(
         db.commit()
         db.refresh(new_incident)
         return new_incident
-    except Exception:
+    except Exception as exc:
         db.rollback()
+        logger.exception("Failed to save historical incident")
         raise HTTPException(
             status_code=500,
             detail="Failed to save historical incident."
-        )
+        ) from exc
 
 
 @router.get("/historical-incidents")
@@ -172,11 +174,12 @@ def get_historical_incidents(
         return db.query(HistoricalIncident).order_by(
             HistoricalIncident.id.desc()
         ).all()
-    except Exception:
+    except Exception as exc:
+        logger.exception("Failed to retrieve historical incidents")
         raise HTTPException(
             status_code=500,
             detail="Failed to retrieve historical incidents."
-        )
+        ) from exc
 
 
 @router.get("/incidents/{incident_id}")

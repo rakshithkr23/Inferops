@@ -1,6 +1,8 @@
 from app.database.connection import Base, engine
-from app.models.historical_incident import HistoricalIncident as HistoricalIncident
-from app.models.incident import Incident as Incident
+
+# Imported for their side effect (table registration), see init_db.py.
+from app.models.historical_incident import HistoricalIncident  # noqa: F401
+from app.models.incident import Incident  # noqa: F401
 from app.rag.embedding_model import IncidentEmbedding
 
 

@@ -1,14 +1,13 @@
 
 import json
-from unittest.mock import patch
-
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 from app.auth import get_current_user
-from app.main import app
 from app.database.dependencies import get_db
+from app.main import app
 from app.rca.service import (
     RCAServiceError,
     _normalize_and_validate,

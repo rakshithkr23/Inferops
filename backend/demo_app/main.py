@@ -244,7 +244,7 @@ def get_data():
 @app.get("/api/error")
 def generate_error():
     logger.error("Application failure endpoint triggered")
-    raise Exception("application failure")
+    raise Exception("application failure")  # noqa: TRY002 - intentional demo failure
 
 @app.get("/api/crash")
 def crash_application():
@@ -257,7 +257,7 @@ def crash_application():
 def database_error():
     logger.error("Database connection failure endpoint triggered")
 
-    raise Exception(
+    raise Exception( # noqa: TRY002 - intentional demo failure
         "Database connection failed: unable to connect to PostgreSQL"
     )
 
@@ -283,7 +283,7 @@ def config_error():
     if required_config is None:
         logger.error("Configuration error: DATABASE_URL is missing")
 
-        raise Exception(
+        raise Exception( # noqa: TRY002 - intentional demo failure
             "Configuration error: DATABASE_URL is missing"
         )
 
