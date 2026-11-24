@@ -1,11 +1,11 @@
-
+---
 name: InferOps CD
 
 # After a merge to main: build images, deploy them to a temporary kind
 # (Kubernetes) cluster, smoke-test the running app and, only if everything
 # passes, publish the images to GitHub Container Registry.
 
-on:
+on:  # yamllint disable-line rule:truthy
   push:
     branches:
       - main
@@ -32,7 +32,13 @@ jobs:
       - name: Build images
         run: |
           docker build -t inferops-backend:local ./backend
-          docker build -t inferops-frontend:local ./frontend
+
+          docker build \
+            --build-arg VITE_API_URL=http://localhost:8000 \
+            --build-arg \
+            "VITE_GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" \
+            -t inferops-frontend:local \
+            ./frontend
 
       - name: Create kind cluster
         uses: helm/kind-action@v1
@@ -48,24 +54,33 @@ jobs:
       - name: Deploy to Kubernetes
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
         run: |
           # Generate a secure session secret for this temporary CI deployment.
           AUTH_SESSION_SECRET="$(openssl rand -hex 32)"
 
           kubectl apply -f k8s/base/namespace.yml
 
+          DATABASE_URL="postgresql+psycopg://inferops:ci-password@postgres:5432/inferops"
+
           kubectl -n inferops create secret generic inferops-secrets \
             --from-literal=POSTGRES_PASSWORD=ci-password \
-            --from-literal=DATABASE_URL=postgresql+psycopg://inferops:ci-password@postgres:5432/inferops \
+            --from-literal=DATABASE_URL="${DATABASE_URL}" \
             --from-literal=GEMINI_API_KEY="${GEMINI_API_KEY}" \
+            --from-literal=GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID}" \
             --from-literal=AUTH_SESSION_SECRET="${AUTH_SESSION_SECRET}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
           kubectl apply -k k8s/base
 
-          kubectl -n inferops rollout status statefulset/postgres --timeout=300s
-          kubectl -n inferops rollout status deployment/inferops-backend --timeout=600s
-          kubectl -n inferops rollout status deployment/inferops-frontend --timeout=120s
+          kubectl -n inferops rollout status \
+            statefulset/postgres --timeout=300s
+
+          kubectl -n inferops rollout status \
+            deployment/inferops-backend --timeout=600s
+
+          kubectl -n inferops rollout status \
+            deployment/inferops-frontend --timeout=120s
 
       - name: Smoke test backend
         env:
@@ -80,7 +95,8 @@ jobs:
         run: |
           kubectl -n inferops get pods -o wide || true
           kubectl -n inferops describe pods || true
-          kubectl -n inferops logs deployment/inferops-backend --tail=200 || true
+          kubectl -n inferops logs \
+            deployment/inferops-backend --tail=200 || true
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -93,9 +109,11 @@ jobs:
         run: |
           OWNER="${GITHUB_REPOSITORY_OWNER,,}"
           SHORT_SHA="${GITHUB_SHA::7}"
+
           for name in backend frontend; do
             for tag in "$SHORT_SHA" latest; do
-              docker tag "inferops-$name:local" "ghcr.io/$OWNER/inferops-$name:$tag"
-              docker push "ghcr.io/$OWNER/inferops-$name:$tag"
+              IMAGE="ghcr.io/$OWNER/inferops-$name:$tag"
+              docker tag "inferops-$name:local" "$IMAGE"
+              docker push "$IMAGE"
             done
           done
